@@ -36,8 +36,7 @@ String packet;
 
 unsigned int counter = 0;
 
-bool receiveflag =
-    false; // software flag for LoRa receiver, received data makes it true.
+bool receiveflag = false; // software flag for LoRa receiver, received data makes it true.
 
 long lastSendTime = 0; // last send time
 int interval = 1000;   // interval between sends
@@ -46,15 +45,15 @@ void onReceive(int packetSize);
 void send();
 void displaySendReceive();
 
-
-void logo() {
+void logo()
+{
   Heltec.display->clear();
-  Heltec.display->drawXbm(0, 5, logo_width, logo_height,
-                          (const unsigned char *)logo_bits);
+  Heltec.display->drawXbm(0, 5, logo_width, logo_height, (const unsigned char*)logo_bits);
   Heltec.display->display();
 }
 
-void WIFISetUp(void) {
+void WIFISetUp(void)
+{
   // Set WiFi to station mode and disconnect from an AP if it was previously
   // connected
   WiFi.disconnect(true);
@@ -66,7 +65,8 @@ void WIFISetUp(void) {
   delay(100);
 
   byte count = 0;
-  while (WiFi.status() != WL_CONNECTED && count < 10) {
+  while (WiFi.status() != WL_CONNECTED && count < 10)
+  {
     count++;
     delay(500);
     Heltec.display->drawString(0, 0, "Connecting...");
@@ -74,11 +74,14 @@ void WIFISetUp(void) {
   }
 
   Heltec.display->clear();
-  if (WiFi.status() == WL_CONNECTED) {
+  if (WiFi.status() == WL_CONNECTED)
+  {
     Heltec.display->drawString(0, 0, "Connecting...OK.");
     Heltec.display->display();
     //		delay(500);
-  } else {
+  }
+  else
+  {
     Heltec.display->clear();
     Heltec.display->drawString(0, 0, "Connecting...Failed");
     Heltec.display->display();
@@ -89,12 +92,15 @@ void WIFISetUp(void) {
   delay(500);
 }
 
-void WIFIScan(unsigned int value) {
+void WIFIScan(unsigned int value)
+{
   unsigned int i;
-  if (WiFi.status() != WL_CONNECTED) {
+  if (WiFi.status() != WL_CONNECTED)
+  {
     WiFi.mode(WIFI_MODE_NULL);
   }
-  for (i = 0; i < value; i++) {
+  for (i = 0; i < value; i++)
+  {
     Heltec.display->drawString(0, 20, "Scan start...");
     Heltec.display->display();
 
@@ -104,18 +110,22 @@ void WIFIScan(unsigned int value) {
     delay(500);
     Heltec.display->clear();
 
-    if (n == 0) {
+    if (n == 0)
+    {
       Heltec.display->clear();
       Heltec.display->drawString(0, 0, "no network found");
       Heltec.display->display();
       // while(1);
-    } else {
+    }
+    else
+    {
       Heltec.display->drawString(0, 0, (String)n);
       Heltec.display->drawString(14, 0, "networks found:");
       Heltec.display->display();
       delay(500);
 
-      for (int i = 0; i < n; ++i) {
+      for (int i = 0; i < n; ++i)
+      {
         // Print SSID and RSSI for each network found
         Heltec.display->drawString(0, (i + 1) * 9, (String)(i + 1));
         Heltec.display->drawString(6, (i + 1) * 9, ":");
@@ -137,21 +147,26 @@ void WIFIScan(unsigned int value) {
 
 bool resendflag = false;
 bool deepsleepflag = false;
-void interrupt_GPIO0() {
+void interrupt_GPIO0()
+{
   delay(10);
-  if (digitalRead(0) == 0) {
-    if (digitalRead(LED) == LOW) {
+  if (digitalRead(0) == 0)
+  {
+    if (digitalRead(LED) == LOW)
+    {
       resendflag = true;
-    } else {
+    }
+    else
+    {
       deepsleepflag = true;
     }
   }
 }
 
-void setup() {
-  Heltec.begin(true /*DisplayEnable Enable*/, true /*LoRa Enable*/,
-               true /*Serial Enable*/, true /*LoRa use PABOOST*/,
-               BAND /*LoRa RF working band*/);
+void setup()
+{
+  Heltec.begin(true /*DisplayEnable Enable*/, true /*LoRa Enable*/, true /*Serial Enable*/,
+               true /*LoRa use PABOOST*/, BAND /*LoRa RF working band*/);
 
   logo();
   delay(300);
@@ -172,8 +187,10 @@ void setup() {
   displaySendReceive();
 }
 
-void loop() {
-  if (deepsleepflag) {
+void loop()
+{
+  if (deepsleepflag)
+  {
     LoRa.end();
     LoRa.sleep();
     delay(100);
@@ -191,13 +208,15 @@ void loop() {
     delay(2);
     esp_deep_sleep_start();
   }
-  if (resendflag) {
+  if (resendflag)
+  {
     resendflag = false;
     send();
     LoRa.receive();
     displaySendReceive();
   }
-  if (receiveflag) {
+  if (receiveflag)
+  {
     digitalWrite(25, HIGH);
     displaySendReceive();
     delay(1000);
@@ -208,15 +227,16 @@ void loop() {
   }
 }
 
-void send() {
+void send()
+{
   LoRa.beginPacket();
   LoRa.print("hello ");
   LoRa.print(counter++);
   LoRa.endPacket();
 }
-void displaySendReceive() {
-  Heltec.display->drawString(0, 50,
-                             "Packet " + (String)(counter - 1) + " sent done");
+void displaySendReceive()
+{
+  Heltec.display->drawString(0, 50, "Packet " + (String)(counter - 1) + " sent done");
   Heltec.display->drawString(0, 0, "Received Size" + packSize + " packages:");
   Heltec.display->drawString(0, 10, packet);
   Heltec.display->drawString(0, 20, "With " + rssi);
@@ -232,7 +252,8 @@ void onReceive(int packetSize) // LoRa receiver interrupt service
   packet = "";
   packSize = String(packetSize, DEC);
 
-  while (LoRa.available()) {
+  while (LoRa.available())
+  {
     packet += (char)LoRa.read();
   }
 

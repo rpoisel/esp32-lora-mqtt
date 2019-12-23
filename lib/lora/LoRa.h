@@ -4,44 +4,52 @@
 #include <Arduino.h>
 #include <SPI.h>
 
-#define LORA_DEFAULT_SS_PIN     18
-#define LORA_DEFAULT_RESET_PIN  14
-#define LORA_DEFAULT_DIO0_PIN   26
+#define LORA_DEFAULT_SS_PIN 18
+#define LORA_DEFAULT_RESET_PIN 14
+#define LORA_DEFAULT_DIO0_PIN 26
 
-#define PA_OUTPUT_PA_BOOST_PIN  1
-#define PA_OUTPUT_RFO_PIN       0
+#define PA_OUTPUT_PA_BOOST_PIN 1
+#define PA_OUTPUT_RFO_PIN 0
 
 /*!
  * RegPaConfig
  */
-#define RF_PACONFIG_PASELECT_MASK                   0x7F
-#define RF_PACONFIG_PASELECT_PABOOST                0x80
-#define RF_PACONFIG_PASELECT_RFO                    0x00 // Default
+#define RF_PACONFIG_PASELECT_MASK 0x7F
+#define RF_PACONFIG_PASELECT_PABOOST 0x80
+#define RF_PACONFIG_PASELECT_RFO 0x00 // Default
 
-#define RF_PACONFIG_MAX_POWER_MASK                  0x8F
+#define RF_PACONFIG_MAX_POWER_MASK 0x8F
 
-#define RF_PACONFIG_OUTPUTPOWER_MASK                0xF0
+#define RF_PACONFIG_OUTPUTPOWER_MASK 0xF0
 
 /*!
  * RegPaDac
  */
-#define RF_PADAC_20DBM_MASK                         0xF8
-#define RF_PADAC_20DBM_ON                           0x07
-#define RF_PADAC_20DBM_OFF                          0x04  // Default
+#define RF_PADAC_20DBM_MASK 0xF8
+#define RF_PADAC_20DBM_ON 0x07
+#define RF_PADAC_20DBM_OFF 0x04 // Default
 
-
-
-#if defined (__STM32F1__)
-inline unsigned char  digitalPinToInterrupt(unsigned char Interrupt_pin) { return Interrupt_pin; } //This isn't included in the stm32duino libs (yet)
-#define portOutputRegister(port) (volatile byte *)( &(port->regs->ODR) ) //These are defined in STM32F1/variants/generic_stm32f103c/variant.h but return a non byte* value
-#define portInputRegister(port) (volatile byte *)( &(port->regs->IDR) ) //These are defined in STM32F1/variants/generic_stm32f103c/variant.h but return a non byte* value
+#if defined(__STM32F1__)
+inline unsigned char digitalPinToInterrupt(unsigned char Interrupt_pin)
+{
+  return Interrupt_pin;
+} // This isn't included in the stm32duino libs (yet)
+#define portOutputRegister(port)                                                                   \
+  (volatile byte*)(&(                                                                              \
+      port->regs->ODR)) // These are defined in STM32F1/variants/generic_stm32f103c/variant.h but
+                        // return a non byte* value
+#define portInputRegister(port)                                                                    \
+  (volatile byte*)(&(                                                                              \
+      port->regs->IDR)) // These are defined in STM32F1/variants/generic_stm32f103c/variant.h but
+                        // return a non byte* value
 #endif
 
-class LoRaClass : public Stream {
-public:
+class LoRaClass : public Stream
+{
+  public:
   LoRaClass();
 
-  int begin(long frequency,bool PABOOST);
+  int begin(long frequency, bool PABOOST);
   void end();
 
   int beginPacket(int implicitHeader = false);
@@ -53,7 +61,7 @@ public:
 
   // from Print
   virtual size_t write(uint8_t byte);
-  virtual size_t write(const uint8_t *buffer, size_t size);
+  virtual size_t write(const uint8_t* buffer, size_t size);
 
   // from Stream
   virtual int available();
@@ -61,7 +69,7 @@ public:
   virtual int peek();
   virtual void flush();
 
-  void onReceive(void(*callback)(int));
+  void onReceive(void (*callback)(int));
 
   void receive(int size = 0);
   void idle();
@@ -79,17 +87,24 @@ public:
   void disableCrc();
 
   // deprecated
-  void crc() { enableCrc(); }
-  void noCrc() { disableCrc(); }
+  void crc()
+  {
+    enableCrc();
+  }
+  void noCrc()
+  {
+    disableCrc();
+  }
 
   byte random();
 
-  void setPins(int ss = LORA_DEFAULT_SS_PIN, int reset = LORA_DEFAULT_RESET_PIN, int dio0 = LORA_DEFAULT_DIO0_PIN);
+  void setPins(int ss = LORA_DEFAULT_SS_PIN, int reset = LORA_DEFAULT_RESET_PIN,
+               int dio0 = LORA_DEFAULT_DIO0_PIN);
   void setSPIFrequency(uint32_t frequency);
 
   void dumpRegisters(Stream& out);
 
-private:
+  private:
   void explicitHeaderMode();
   void implicitHeaderMode();
 
@@ -101,7 +116,7 @@ private:
 
   static void onDio0Rise();
 
-private:
+  private:
   SPISettings _spiSettings;
   int _ss;
   int _reset;
