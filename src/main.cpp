@@ -28,22 +28,19 @@
 #include "heltec.h"
 #include "images.h"
 
-#define BAND 868E6 // you can set band here directly,e.g. 868E6,915E6
+constexpr long const BAND = 868E6; // you can set band here directly,e.g. 868E6,915E6
 
-String rssi = "RSSI --";
-String packSize = "--";
-String packet;
+static String rssi = "RSSI --";
+static String packSize = "--";
+static String packet;
 
-unsigned int counter = 0;
+static unsigned int counter = 0;
 
-bool receiveflag = false; // software flag for LoRa receiver, received data makes it true.
+static bool receiveflag = false; // software flag for LoRa receiver, received data makes it true.
 
-long lastSendTime = 0; // last send time
-int interval = 1000;   // interval between sends
-
-void onReceive(int packetSize);
-void send();
-void displaySendReceive();
+static void onReceive(int packetSize);
+static void send();
+static void displaySendReceive();
 
 void logo()
 {
@@ -145,9 +142,9 @@ void WIFIScan(unsigned int value)
   }
 }
 
-bool resendflag = false;
-bool deepsleepflag = false;
-void interrupt_GPIO0()
+static bool resendflag = false;
+static bool deepsleepflag = false;
+static void interrupt_GPIO0()
 {
   delay(10);
   if (digitalRead(0) == 0)
@@ -227,14 +224,15 @@ void loop()
   }
 }
 
-void send()
+static void send()
 {
   LoRa.beginPacket();
   LoRa.print("hello ");
   LoRa.print(counter++);
   LoRa.endPacket();
 }
-void displaySendReceive()
+
+static void displaySendReceive()
 {
   Heltec.display->drawString(0, 50, "Packet " + (String)(counter - 1) + " sent done");
   Heltec.display->drawString(0, 0, "Received Size" + packSize + " packages:");
@@ -245,7 +243,7 @@ void displaySendReceive()
   Heltec.display->clear();
 }
 
-void onReceive(int packetSize) // LoRa receiver interrupt service
+static void onReceive(int packetSize) // LoRa receiver interrupt service
 {
   // if (packetSize == 0) return;
 

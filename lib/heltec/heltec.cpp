@@ -101,6 +101,11 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
       while (1)
         ;
     }
+    LoRa.setSpreadingFactor(6);
+    LoRa.setPreambleLength(8);
+    LoRa.setSignalBandwidth(125000);
+    LoRa.setCodingRate4(5);
+    LoRa.enableCrc();
     if (SerialEnable)
     {
       Serial.print("LoRa Initial success!\r\n");
