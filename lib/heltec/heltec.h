@@ -13,7 +13,6 @@
 #if defined(WIFI_LoRa_32) || defined(WIFI_LoRa_32_V2) || defined(Wireless_Stick) ||                \
     defined(Wireless_Stick_Lite)
 #include <LoRa.h>
-#include <SPI.h>
 #endif
 
 constexpr uint8_t const BUTTON = 0;
@@ -33,6 +32,7 @@ class Heltec_ESP32
 
   void begin(bool DisplayEnable = true, bool LoRaEnable = true, bool SerialEnable = true,
              bool PABOOST = true, long BAND = 868E6);
+  void logo();
 #if defined(WIFI_LoRa_32) || defined(WIFI_LoRa_32_V2) || defined(Wireless_Stick) ||                \
     defined(Wireless_Stick_Lite)
 #endif
@@ -43,8 +43,8 @@ class Heltec_ESP32
 #endif
 
   /* wifi kit 32 and WiFi LoRa 32(V1) do not have vext */
-  void VextON(void);
-  void VextOFF(void);
+  void VextON();
+  void VextOFF();
 };
 
 extern Heltec_ESP32 Heltec;

@@ -25,7 +25,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <heltec.h>
-#include <images.h>
 
 constexpr long const BAND = 868E6; // you can set band here directly,e.g. 868E6,915E6
 
@@ -41,14 +40,7 @@ static void onReceive(int packetSize);
 static void send();
 static void displaySendReceive();
 
-void logo()
-{
-  Heltec.display->clear();
-  Heltec.display->drawXbm(0, 5, logo_width, logo_height, (const unsigned char*)logo_bits);
-  Heltec.display->display();
-}
-
-void WIFISetUp(void)
+void WIFISetUp()
 {
   // Set WiFi to station mode and disconnect from an AP if it was previously
   // connected
@@ -156,7 +148,7 @@ void setup()
   Heltec.begin(true /*DisplayEnable Enable*/, true /*LoRa Enable*/, true /*Serial Enable*/,
                true /*LoRa use PABOOST*/, BAND /*LoRa RF working band*/);
 
-  logo();
+  Heltec.logo();
   delay(300);
   Heltec.display->clear();
 

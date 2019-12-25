@@ -3,6 +3,7 @@
 // information.
 
 #include "heltec.h"
+#include <images.h>
 
 Heltec_ESP32::Heltec_ESP32()
 {
@@ -125,13 +126,20 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
   pinMode(LED, OUTPUT);
 }
 
-void Heltec_ESP32::VextON(void)
+void Heltec_ESP32::logo()
+{
+  display->clear();
+  display->drawXbm(0, 5, logo_width, logo_height, (const unsigned char*)logo_bits);
+  display->display();
+}
+
+void Heltec_ESP32::VextON()
 {
   pinMode(Vext, OUTPUT);
   digitalWrite(Vext, LOW);
 }
 
-void Heltec_ESP32::VextOFF(void) // Vext default OFF
+void Heltec_ESP32::VextOFF() // Vext default OFF
 {
   pinMode(Vext, OUTPUT);
   digitalWrite(Vext, HIGH);
