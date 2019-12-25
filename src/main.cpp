@@ -16,7 +16,6 @@
  * - Timer test and some other Arduino basic functions.
  *
  * by Aaron.Lee from HelTec AutoMation, ChengDu, China
- * 成都惠利特自动化科技有限公司
  * www.heltec.cn
  *
  * this project also realess in GitHub:
@@ -165,7 +164,7 @@ void setup()
   Heltec.display->clear();
 
   WIFISetUp();
-  WiFi.disconnect(true); //重新初始化WIFI
+  WiFi.disconnect(true);
   delay(1000);
   WiFi.mode(WIFI_STA);
   WiFi.setAutoConnect(true);

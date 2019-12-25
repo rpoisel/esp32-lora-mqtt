@@ -1,18 +1,18 @@
-#ifndef _HELTEC_H_
-#define _HELTEC_H_
+#ifndef HELTEC_H_
+#define HELTEC_H_
 
 #if defined(ESP32)
 
 #include <Arduino.h>
 #if defined(WIFI_Kit_32) || defined(WIFI_LoRa_32) || defined(WIFI_LoRa_32_V2) ||                   \
     defined(Wireless_Stick)
-#include "SSD1306Wire.h"
+#include <SSD1306Wire.h>
 #include <Wire.h>
 #endif
 
 #if defined(WIFI_LoRa_32) || defined(WIFI_LoRa_32_V2) || defined(Wireless_Stick) ||                \
     defined(Wireless_Stick_Lite)
-#include "LoRa.h"
+#include <LoRa.h>
 #include <SPI.h>
 #endif
 
@@ -27,7 +27,6 @@ constexpr uint8_t const DIO0 = 26;
 
 class Heltec_ESP32
 {
-
   public:
   Heltec_ESP32();
   ~Heltec_ESP32();
@@ -43,7 +42,7 @@ class Heltec_ESP32
   SSD1306Wire* display;
 #endif
 
-  /*wifi kit 32 and WiFi LoRa 32(V1) do not have vext*/
+  /* wifi kit 32 and WiFi LoRa 32(V1) do not have vext */
   void VextON(void);
   void VextOFF(void);
 };
@@ -51,7 +50,7 @@ class Heltec_ESP32
 extern Heltec_ESP32 Heltec;
 
 #else
-#error ¡°This library only supports boards with ESP32 processor.¡±
+#error This library only supports boards with ESP32 processor.
 #endif
 
-#endif
+#endif /* HELTEC_H_ */
