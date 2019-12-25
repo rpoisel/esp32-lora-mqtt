@@ -3,24 +3,13 @@
 // information.
 
 #include "heltec.h"
-#include <images.h>
 
-Heltec_ESP32::Heltec_ESP32()
+Heltec_ESP32::Heltec_ESP32() : display(0x3c, SDA_OLED, SCL_OLED, RST_OLED, GEOMETRY_128_64)
 {
-
-#if defined(WIFI_Kit_32) || defined(WIFI_LoRa_32) || defined(WIFI_LoRa_32_V2)
-  display = new SSD1306Wire(0x3c, SDA_OLED, SCL_OLED, RST_OLED, GEOMETRY_128_64);
-#elif defined(Wireless_Stick)
-  display = new SSD1306Wire(0x3c, SDA_OLED, SCL_OLED, RST_OLED, GEOMETRY_64_32);
-#endif
 }
 
 Heltec_ESP32::~Heltec_ESP32()
 {
-#if defined(WIFI_Kit_32) || defined(WIFI_LoRa_32) || defined(WIFI_LoRa_32_V2) ||                   \
-    defined(Wireless_Stick)
-  delete display;
-#endif
 }
 
 void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable, bool PABOOST,
@@ -54,11 +43,11 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
 
 #if defined(WIFI_Kit_32) || defined(WIFI_LoRa_32) || defined(WIFI_LoRa_32_V2) ||                   \
     defined(Wireless_Stick)
-    display->init();
-    display->flipScreenVertically();
-    display->setFont(ArialMT_Plain_10);
-    display->drawString(0, 0, "OLED initial done!");
-    display->display();
+    display.init();
+    display.flipScreenVertically();
+    display.setFont(ArialMT_Plain_10);
+    display.drawString(0, 0, "OLED initial done!");
+    display.display();
 
     if (SerialEnable)
     {
@@ -92,9 +81,9 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
     defined(Wireless_Stick)
       if (DisplayEnable)
       {
-        display->clear();
-        display->drawString(0, 0, "Starting LoRa failed!");
-        display->display();
+        display.clear();
+        display.drawString(0, 0, "Starting LoRa failed!");
+        display.display();
         delay(300);
       }
 #endif
@@ -114,9 +103,9 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
     defined(Wireless_Stick)
     if (DisplayEnable)
     {
-      display->clear();
-      display->drawString(0, 0, "LoRa Initial success!");
-      display->display();
+      display.clear();
+      display.drawString(0, 0, "LoRa Initial success!");
+      display.display();
       delay(300);
     }
 #endif
@@ -126,11 +115,31 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
   pinMode(LED, OUTPUT);
 }
 
-void Heltec_ESP32::logo()
+void Heltec_ESP32::displaySendReceive(size_t cnt, int packSize, String const& packet, int rssi)
 {
-  display->clear();
-  display->drawXbm(0, 5, logo_width, logo_height, (const unsigned char*)logo_bits);
-  display->display();
+  displaySendReceive((String)(cnt - 1), String(packSize, DEC), packet, String(LoRa.packetRssi(), DEC));
+}
+
+void Heltec_ESP32::displaySendReceive(String const& cnt, String const& packSize, String const& packet,
+                        String const& rssi)
+{
+  auto rssiStr = "RSSI: " + rssi;
+
+  Heltec.display.drawString(0, 50, "Packet " + cnt + " sent done");
+  Heltec.display.drawString(0, 0, "Recv size " + packSize + " packages:");
+  Heltec.display.drawString(0, 10, packet);
+  Heltec.display.drawString(0, 20, "With " + rssiStr);
+  Heltec.display.display();
+  delay(100);
+  Heltec.display.clear();
+}
+
+void Heltec_ESP32::send(size_t cnt)
+{
+  LoRa.beginPacket();
+  LoRa.print("hello ");
+  LoRa.print(cnt);
+  LoRa.endPacket();
 }
 
 void Heltec_ESP32::VextON()
