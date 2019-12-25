@@ -129,7 +129,7 @@ static bool resendflag = false;
 static void interrupt_GPIO0()
 {
   delay(10);
-  if (digitalRead(BUTTON) == LOW && digitalRead(LED) == LOW)
+  if (digitalRead(Heltec_ESP32::BUTTON) == LOW && digitalRead(Heltec_ESP32::LED) == LOW)
   {
     resendflag = true;
   }
@@ -150,7 +150,7 @@ void setup()
 
   WIFIScan(1);
 
-  attachInterrupt(BUTTON, interrupt_GPIO0, FALLING);
+  attachInterrupt(Heltec_ESP32::BUTTON, interrupt_GPIO0, FALLING);
   LoRa.onReceive(onReceive);
   Heltec.send(counter);
   counter++;
@@ -170,7 +170,7 @@ void loop()
   }
   if (receiveflag)
   {
-    digitalWrite(LED, HIGH);
+    digitalWrite(Heltec_ESP32::LED, HIGH);
     Heltec.displaySendReceive(counter, packSize, packet, rssi);
     delay(10);
     receiveflag = false;
@@ -178,7 +178,7 @@ void loop()
     counter++;
     LoRa.receive();
     Heltec.displaySendReceive(counter, packSize, packet, rssi);
-    digitalWrite(LED, LOW);
+    digitalWrite(Heltec_ESP32::LED, LOW);
   }
 }
 

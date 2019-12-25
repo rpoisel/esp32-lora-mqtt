@@ -1,32 +1,24 @@
 #ifndef HELTEC_H_
 #define HELTEC_H_
 
-#if defined(ESP32)
+#include <functional>
 
 #include <Arduino.h>
-#if defined(WIFI_Kit_32) || defined(WIFI_LoRa_32) || defined(WIFI_LoRa_32_V2) ||                   \
-    defined(Wireless_Stick)
-#include <SSD1306Wire.h>
-#include <Wire.h>
-#endif
-
-#if defined(WIFI_LoRa_32) || defined(WIFI_LoRa_32_V2) || defined(Wireless_Stick) ||                \
-    defined(Wireless_Stick_Lite)
 #include <LoRa.h>
-#endif
-
-constexpr uint8_t const BUTTON = 0;
-constexpr uint8_t const LED = 25;
-constexpr uint8_t const Vext = 21;
-constexpr uint8_t const SDA_OLED = 4;
-constexpr uint8_t const SCL_OLED = 15;
-constexpr uint8_t const RST_OLED = 16;
-constexpr uint8_t const RST_LoRa = 14;
-constexpr uint8_t const DIO0 = 26;
+#include <SSD1306Wire.h>
 
 class Heltec_ESP32
 {
   public:
+  static constexpr uint8_t const BUTTON = 0;
+  static constexpr uint8_t const LED = 25;
+  static constexpr uint8_t const Vext = 21;
+  static constexpr uint8_t const SDA_OLED = 4;
+  static constexpr uint8_t const SCL_OLED = 15;
+  static constexpr uint8_t const RST_OLED = 16;
+  static constexpr uint8_t const RST_LoRa = 14;
+  static constexpr uint8_t const DIO0 = 26;
+
   Heltec_ESP32();
   ~Heltec_ESP32();
 
@@ -37,24 +29,14 @@ class Heltec_ESP32
   void displaySendReceive(String const& cnt = String("--"), String const& packSize = String("--"),
                           String const& packet = String(), String const& rssi = String("--"));
   void send(size_t cnt);
-#if defined(WIFI_LoRa_32) || defined(WIFI_LoRa_32_V2) || defined(Wireless_Stick) ||                \
-    defined(Wireless_Stick_Lite)
-#endif
-
-#if defined(WIFI_Kit_32) || defined(WIFI_LoRa_32) || defined(WIFI_LoRa_32_V2) ||                   \
-    defined(Wireless_Stick)
-  SSD1306Wire display;
-#endif
 
   /* wifi kit 32 and WiFi LoRa 32(V1) do not have vext */
   void VextON();
   void VextOFF();
+
+  SSD1306Wire display;
 };
 
 extern Heltec_ESP32 Heltec;
-
-#else
-#error This library only supports boards with ESP32 processor.
-#endif
 
 #endif /* HELTEC_H_ */
