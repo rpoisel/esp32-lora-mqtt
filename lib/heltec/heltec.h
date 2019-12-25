@@ -16,13 +16,14 @@
 #include <SPI.h>
 #endif
 
-constexpr uint8_t LED = 25;
-constexpr uint8_t Vext = 21;
-constexpr uint8_t SDA_OLED = 4;
-constexpr uint8_t SCL_OLED = 15;
-constexpr uint8_t RST_OLED = 16;
-constexpr uint8_t RST_LoRa = 14;
-constexpr uint8_t DIO0 = 34;
+constexpr uint8_t const BUTTON = 0;
+constexpr uint8_t const LED = 25;
+constexpr uint8_t const Vext = 21;
+constexpr uint8_t const SDA_OLED = 4;
+constexpr uint8_t const SCL_OLED = 15;
+constexpr uint8_t const RST_OLED = 16;
+constexpr uint8_t const RST_LoRa = 14;
+constexpr uint8_t const DIO0 = 26;
 
 class Heltec_ESP32
 {
@@ -35,7 +36,6 @@ class Heltec_ESP32
              bool PABOOST = true, long BAND = 868E6);
 #if defined(WIFI_LoRa_32) || defined(WIFI_LoRa_32_V2) || defined(Wireless_Stick) ||                \
     defined(Wireless_Stick_Lite)
-  LoRaClass LoRa;
 #endif
 
 #if defined(WIFI_Kit_32) || defined(WIFI_LoRa_32) || defined(WIFI_LoRa_32_V2) ||                   \

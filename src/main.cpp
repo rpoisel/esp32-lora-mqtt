@@ -23,10 +23,10 @@
  * https://github.com/HelTecAutomation/Heltec_ESP32
  */
 
-#include "Arduino.h"
-#include "WiFi.h"
-#include "heltec.h"
-#include "images.h"
+#include <Arduino.h>
+#include <WiFi.h>
+#include <heltec.h>
+#include <images.h>
 
 constexpr long const BAND = 868E6; // you can set band here directly,e.g. 868E6,915E6
 
@@ -143,20 +143,15 @@ void WIFIScan(unsigned int value)
 }
 
 static bool resendflag = false;
+#if 0
 static bool deepsleepflag = false;
+#endif
 static void interrupt_GPIO0()
 {
   delay(10);
-  if (digitalRead(0) == 0)
+  if (digitalRead(BUTTON) == LOW && digitalRead(LED) == LOW)
   {
-    if (digitalRead(LED) == LOW)
-    {
-      resendflag = true;
-    }
-    else
-    {
-      deepsleepflag = true;
-    }
+    resendflag = true;
   }
 }
 
@@ -177,7 +172,7 @@ void setup()
 
   WIFIScan(1);
 
-  attachInterrupt(0, interrupt_GPIO0, FALLING);
+  attachInterrupt(BUTTON, interrupt_GPIO0, FALLING);
   LoRa.onReceive(onReceive);
   send();
   LoRa.receive();
@@ -186,6 +181,7 @@ void setup()
 
 void loop()
 {
+#if 0
   if (deepsleepflag)
   {
     LoRa.end();
@@ -205,6 +201,7 @@ void loop()
     delay(2);
     esp_deep_sleep_start();
   }
+#endif
   if (resendflag)
   {
     resendflag = false;
@@ -214,13 +211,14 @@ void loop()
   }
   if (receiveflag)
   {
-    digitalWrite(25, HIGH);
+    digitalWrite(LED, HIGH);
     displaySendReceive();
     delay(1000);
     receiveflag = false;
     send();
     LoRa.receive();
     displaySendReceive();
+    digitalWrite(LED, LOW);
   }
 }
 
@@ -235,7 +233,7 @@ static void send()
 static void displaySendReceive()
 {
   Heltec.display->drawString(0, 50, "Packet " + (String)(counter - 1) + " sent done");
-  Heltec.display->drawString(0, 0, "Received Size" + packSize + " packages:");
+  Heltec.display->drawString(0, 0, "Recv size " + packSize + " packages:");
   Heltec.display->drawString(0, 10, packet);
   Heltec.display->drawString(0, 20, "With " + rssi);
   Heltec.display->display();
@@ -257,5 +255,6 @@ static void onReceive(int packetSize) // LoRa receiver interrupt service
 
   Serial.println(packet);
   rssi = "RSSI: " + String(LoRa.packetRssi(), DEC);
+  Serial.println(rssi);
   receiveflag = true;
 }

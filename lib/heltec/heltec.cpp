@@ -78,11 +78,10 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
 
 #if defined(WIFI_LoRa_32) || defined(WIFI_LoRa_32_V2) || defined(Wireless_Stick) ||                \
     defined(Wireless_Stick_Lite)
-    // LoRaClass LoRa;
 
     SPI.begin(SCK, MISO, MOSI, SS);
     LoRa.setPins(SS, RST_LoRa, DIO0);
-    if (!LoRa.begin(BAND, PABOOST))
+    if (!LoRa.begin(BAND))
     {
       if (SerialEnable)
       {
@@ -101,11 +100,11 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
       while (1)
         ;
     }
-    LoRa.setSpreadingFactor(6);
+    LoRa.setSpreadingFactor(7);
     LoRa.setPreambleLength(8);
     LoRa.setSignalBandwidth(125000);
+    LoRa.disableCrc();
     LoRa.setCodingRate4(5);
-    LoRa.enableCrc();
     if (SerialEnable)
     {
       Serial.print("LoRa Initial success!\r\n");
