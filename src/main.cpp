@@ -142,9 +142,6 @@ void WIFIScan(unsigned int value)
 }
 
 static bool resendflag = false;
-#if 0
-static bool deepsleepflag = false;
-#endif
 static void interrupt_GPIO0()
 {
   delay(10);
@@ -180,27 +177,6 @@ void setup()
 
 void loop()
 {
-#if 0
-  if (deepsleepflag)
-  {
-    LoRa.end();
-    LoRa.sleep();
-    delay(100);
-    pinMode(4, INPUT);
-    pinMode(5, INPUT);
-    pinMode(14, INPUT);
-    pinMode(15, INPUT);
-    pinMode(16, INPUT);
-    pinMode(17, INPUT);
-    pinMode(18, INPUT);
-    pinMode(19, INPUT);
-    pinMode(26, INPUT);
-    pinMode(27, INPUT);
-    digitalWrite(Vext, HIGH);
-    delay(2);
-    esp_deep_sleep_start();
-  }
-#endif
   if (resendflag)
   {
     resendflag = false;
