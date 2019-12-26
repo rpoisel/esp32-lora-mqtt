@@ -9,7 +9,7 @@
 Heltec_ESP32::Heltec_ESP32()
     : display(0x3c, SDA_OLED, SCL_OLED, RST_OLED, GEOMETRY_128_64),
       onReceiveCb([](String const& packet, int rssi) {}), onButtonCb([](ButtonState state) {}),
-      onDrawCb([]() {}), flagButton(false)
+      onDrawCb([](SSD1306Wire* display) {}), flagButton(false)
 {
 }
 
@@ -85,7 +85,7 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
   pinMode(LED, OUTPUT);
   LoRa.onReceive(globalOnReceive);
   attachInterrupt(BUTTON, globalOnButton, FALLING);
-  Heltec.display.clear();
+  display.clear();
 
   // WiFi
   // Set WiFi to station mode and disconnect from an AP if it was previously connected
@@ -128,54 +128,30 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
 
 void Heltec_ESP32::loop()
 {
-  Heltec.display.clear();
+  display.clear();
   LoRa.receive();
   if (flagButton)
   {
     onButtonCb(LOW);
     flagButton = false;
   }
-  onDrawCb();
-  Heltec.display.display();
+  onDrawCb(&display);
+  display.display();
 }
 
-void Heltec_ESP32::onReceive(std::function<void(String const& packet, int rssi)> cb)
+void Heltec_ESP32::onReceive(ReceiveCb const& cb)
 {
   onReceiveCb = cb;
 }
 
-void Heltec_ESP32::onButton(std::function<void(ButtonState state)> cb)
+void Heltec_ESP32::onButton(ButtonCb const& cb)
 {
   onButtonCb = cb;
 }
 
-void Heltec_ESP32::onDraw(std::function<void()> cb)
+void Heltec_ESP32::onDraw(DrawCb const& cb)
 {
   onDrawCb = cb;
-}
-
-void Heltec_ESP32::drawSend(size_t cnt)
-{
-  if (cnt == 0)
-  {
-    Heltec.display.drawString(0, 50, "No packet sent yet.");
-    return;
-  }
-  Heltec.display.drawString(0, 50, "Packet " + String(cnt, DEC) + " sent done");
-}
-
-void Heltec_ESP32::drawRecv(int packSize, String const& packet, int rssi)
-{
-  drawRecv(String(packSize, DEC), packet, String(LoRa.packetRssi(), DEC));
-}
-
-void Heltec_ESP32::drawRecv(String const& packSize, String const& packet, String const& rssi)
-{
-  auto rssiStr = "RSSI: " + rssi;
-
-  Heltec.display.drawString(0, 0, "Recv size " + packSize + " packages:");
-  Heltec.display.drawString(0, 10, packet);
-  Heltec.display.drawString(0, 20, "With " + rssiStr);
 }
 
 void Heltec_ESP32::send(size_t cnt)
