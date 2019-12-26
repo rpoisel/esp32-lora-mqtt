@@ -28,13 +28,8 @@
 
 constexpr long const BAND = 868E6; // you can set band here directly,e.g. 868E6,915E6
 
-static String packet;
-static int packetSize;
-static size_t counterSend;
 static size_t counterRecv;
-static volatile bool sendFlag = false;
-
-static void onReceive(int packetSize);
+static size_t counterSend;
 
 void WIFISetUp()
 {
@@ -72,21 +67,10 @@ void WIFISetUp()
   Heltec.display.display();
 }
 
-static void interrupt_GPIO0()
-{
-  delay(10);
-  if (digitalRead(Heltec_ESP32::BUTTON) == LOW && digitalRead(Heltec_ESP32::LED) == LOW)
-  {
-    sendFlag = true;
-  }
-}
-
 void setup()
 {
   Heltec.begin(true /*DisplayEnable Enable*/, true /*LoRa Enable*/, true /*Serial Enable*/,
                true /*LoRa use PABOOST*/, BAND /*LoRa RF working band*/);
-
-  Heltec.display.clear();
 
   WIFISetUp();
   WiFi.disconnect(true);
@@ -94,46 +78,24 @@ void setup()
   WiFi.mode(WIFI_STA);
   WiFi.setAutoConnect(true);
 
-  attachInterrupt(Heltec_ESP32::BUTTON, interrupt_GPIO0, FALLING);
-  LoRa.onReceive(onReceive);
-  Heltec.send(counterSend);
-  counterSend++;
-  Heltec.drawRecv();
+  Heltec.onReceive([](String const& packet, int rssi) {
+    counterRecv++;
+    Heltec.drawRecv(packet.length(), packet, LoRa.packetRssi());
+  });
+  Heltec.onButton([](ButtonState state) {
+    counterSend++;
+    Heltec.send(counterSend);
+  });
+  Heltec.onDraw([]() {
+    if (counterRecv == 0)
+    {
+      Heltec.drawRecv();
+    }
+    Heltec.drawSend(counterSend);
+  });
 }
 
 void loop()
 {
-  Heltec.display.clear();
-
-  if (sendFlag)
-  {
-    Heltec.send(counterSend);
-    counterSend++;
-    sendFlag = false;
-  }
-  LoRa.receive();
-
-  if (counterRecv == 0)
-  {
-    Heltec.drawRecv();
-  }
-  else
-  {
-    Heltec.drawRecv(packetSize, packet, LoRa.packetRssi());
-  }
-  Heltec.drawSend(counterSend);
-  Heltec.display.display();
-}
-
-static void onReceive(int pSize)
-{
-  packet = "";
-  while (LoRa.available())
-  {
-    packet += (char)LoRa.read();
-  }
-
-  packetSize = pSize;
-
-  counterRecv++;
+  Heltec.loop();
 }

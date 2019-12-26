@@ -1,11 +1,15 @@
 #ifndef HELTEC_H_
 #define HELTEC_H_
 
-#include <functional>
-
 #include <Arduino.h>
 #include <LoRa.h>
 #include <SSD1306Wire.h>
+
+#include <functional>
+
+void globalOnReceive(int pSize);
+using ButtonState = uint8_t;
+void globalOnButton();
 
 class Heltec_ESP32
 {
@@ -24,12 +28,15 @@ class Heltec_ESP32
 
   void begin(bool DisplayEnable = true, bool LoRaEnable = true, bool SerialEnable = true,
              bool PABOOST = true, long BAND = 868E6);
-  void logo();
+  void loop();
+
   void drawSend(size_t cnt);
-  void drawSend(String const& cnt);
   void drawRecv(int packSize, String const& packet, int rssi);
   void drawRecv(String const& packSize = String("--"), String const& packet = String(),
-                   String const& rssi = String("--"));
+                String const& rssi = String("--"));
+  void onReceive(std::function<void(String const& packet, int rssi)> cb);
+  void onButton(std::function<void(ButtonState state)> cb);
+  void onDraw(std::function<void()> cb);
 
   void send(size_t cnt);
 
@@ -38,6 +45,15 @@ class Heltec_ESP32
   void VextOFF();
 
   SSD1306Wire display;
+
+  private:
+  std::function<void(String const& packet, int rssi)> onReceiveCb;
+  std::function<void(ButtonState state)> onButtonCb;
+  std::function<void()> onDrawCb;
+  volatile bool flagButton;
+
+  friend void globalOnReceive(int pSize);
+  friend void globalOnButton();
 };
 
 extern Heltec_ESP32 Heltec;

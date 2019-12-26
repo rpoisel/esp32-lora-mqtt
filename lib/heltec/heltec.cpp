@@ -4,7 +4,10 @@
 
 #include "heltec.h"
 
-Heltec_ESP32::Heltec_ESP32() : display(0x3c, SDA_OLED, SCL_OLED, RST_OLED, GEOMETRY_128_64)
+Heltec_ESP32::Heltec_ESP32()
+    : display(0x3c, SDA_OLED, SCL_OLED, RST_OLED, GEOMETRY_128_64),
+      onReceiveCb([](String const& packet, int rssi) {}), onButtonCb([](ButtonState state) {}),
+      onDrawCb([]() {}), flagButton(false)
 {
 }
 
@@ -78,16 +81,47 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
     }
   }
   pinMode(LED, OUTPUT);
+  LoRa.onReceive(globalOnReceive);
+  attachInterrupt(BUTTON, globalOnButton, FALLING);
+  Heltec.display.clear();
+}
+
+void Heltec_ESP32::loop()
+{
+  Heltec.display.clear();
+  LoRa.receive();
+  if (flagButton)
+  {
+    onButtonCb(LOW);
+    flagButton = false;
+  }
+  onDrawCb();
+  Heltec.display.display();
+}
+
+void Heltec_ESP32::onReceive(std::function<void(String const& packet, int rssi)> cb)
+{
+  onReceiveCb = cb;
+}
+
+void Heltec_ESP32::onButton(std::function<void(ButtonState state)> cb)
+{
+  onButtonCb = cb;
+}
+
+void Heltec_ESP32::onDraw(std::function<void()> cb)
+{
+  onDrawCb = cb;
 }
 
 void Heltec_ESP32::drawSend(size_t cnt)
 {
-  drawSend(String(cnt - 1, DEC));
-}
-
-void Heltec_ESP32::drawSend(String const& cnt)
-{
-  Heltec.display.drawString(0, 50, "Packet " + cnt + " sent done");
+  if (cnt == 0)
+  {
+    Heltec.display.drawString(0, 50, "No packet sent yet.");
+    return;
+  }
+  Heltec.display.drawString(0, 50, "Packet " + String(cnt, DEC) + " sent done");
 }
 
 void Heltec_ESP32::drawRecv(int packSize, String const& packet, int rssi)
@@ -125,3 +159,21 @@ void Heltec_ESP32::VextOFF() // Vext default OFF
 }
 
 Heltec_ESP32 Heltec;
+
+void globalOnReceive(int pSize)
+{
+  String packet;
+  while (LoRa.available())
+  {
+    packet += (char)LoRa.read();
+  }
+  Heltec.onReceiveCb(packet, LoRa.packetRssi());
+}
+
+void globalOnButton()
+{
+  if (digitalRead(Heltec_ESP32::BUTTON) == LOW)
+  {
+    Heltec.flagButton = true;
+  }
+}
