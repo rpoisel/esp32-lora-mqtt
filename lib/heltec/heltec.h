@@ -2,7 +2,6 @@
 #define HELTEC_H_
 
 #include <Arduino.h>
-#include <LoRa.h>
 #include <SSD1306Wire.h>
 
 #include <functional>

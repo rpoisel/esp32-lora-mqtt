@@ -3,6 +3,8 @@
 // information.
 
 #include "heltec.h"
+#include <LoRa.h>
+#include <WiFi.h>
 
 Heltec_ESP32::Heltec_ESP32()
     : display(0x3c, SDA_OLED, SCL_OLED, RST_OLED, GEOMETRY_128_64),
@@ -84,6 +86,44 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
   LoRa.onReceive(globalOnReceive);
   attachInterrupt(BUTTON, globalOnButton, FALLING);
   Heltec.display.clear();
+
+  // WiFi
+  // Set WiFi to station mode and disconnect from an AP if it was previously connected
+  WiFi.disconnect(true);
+  delay(1000);
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoConnect(true);
+  WiFi.begin("SSID",
+             "Password"); // fill in "Your WiFi SSID","Your Password"
+  delay(100);
+
+  byte count = 0;
+  while (WiFi.status() != WL_CONNECTED && count < 10)
+  {
+    count++;
+    display.drawString(0, 0, "Connecting...");
+    display.display();
+  }
+
+  display.clear();
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    display.drawString(0, 0, "Connecting...OK.");
+    display.display();
+  }
+  else
+  {
+    display.clear();
+    display.drawString(0, 0, "Connecting...Failed");
+    display.display();
+  }
+  display.drawString(0, 10, "WIFI Setup done");
+  display.display();
+
+  WiFi.disconnect(true);
+  delay(1000);
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoConnect(true);
 }
 
 void Heltec_ESP32::loop()
