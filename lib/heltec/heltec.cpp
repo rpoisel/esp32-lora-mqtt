@@ -80,23 +80,28 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
   pinMode(LED, OUTPUT);
 }
 
-void Heltec_ESP32::displaySendReceive(size_t cnt, int packSize, String const& packet, int rssi)
+void Heltec_ESP32::drawSend(size_t cnt)
 {
-  displaySendReceive((String)(cnt - 1), String(packSize, DEC), packet, String(LoRa.packetRssi(), DEC));
+  drawSend(String(cnt - 1, DEC));
 }
 
-void Heltec_ESP32::displaySendReceive(String const& cnt, String const& packSize, String const& packet,
-                        String const& rssi)
+void Heltec_ESP32::drawSend(String const& cnt)
+{
+  Heltec.display.drawString(0, 50, "Packet " + cnt + " sent done");
+}
+
+void Heltec_ESP32::drawRecv(int packSize, String const& packet, int rssi)
+{
+  drawRecv(String(packSize, DEC), packet, String(LoRa.packetRssi(), DEC));
+}
+
+void Heltec_ESP32::drawRecv(String const& packSize, String const& packet, String const& rssi)
 {
   auto rssiStr = "RSSI: " + rssi;
 
-  Heltec.display.drawString(0, 50, "Packet " + cnt + " sent done");
   Heltec.display.drawString(0, 0, "Recv size " + packSize + " packages:");
   Heltec.display.drawString(0, 10, packet);
   Heltec.display.drawString(0, 20, "With " + rssiStr);
-  Heltec.display.display();
-  delay(100);
-  Heltec.display.clear();
 }
 
 void Heltec_ESP32::send(size_t cnt)

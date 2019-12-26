@@ -28,11 +28,11 @@
 
 constexpr long const BAND = 868E6; // you can set band here directly,e.g. 868E6,915E6
 
-static int rssi;
-static int packSize;
 static String packet;
-static unsigned int counter = 0;
-static bool receiveflag = false; // software flag for LoRa receiver, received data makes it true.
+static int packetSize;
+static size_t counterSend;
+static size_t counterRecv;
+static volatile bool sendFlag = false;
 
 static void onReceive(int packetSize);
 
@@ -61,77 +61,23 @@ void WIFISetUp()
   {
     Heltec.display.drawString(0, 0, "Connecting...OK.");
     Heltec.display.display();
-    //		delay(500);
   }
   else
   {
     Heltec.display.clear();
     Heltec.display.drawString(0, 0, "Connecting...Failed");
     Heltec.display.display();
-    // while(1);
   }
   Heltec.display.drawString(0, 10, "WIFI Setup done");
   Heltec.display.display();
 }
 
-void WIFIScan(unsigned int value)
-{
-  unsigned int i;
-  if (WiFi.status() != WL_CONNECTED)
-  {
-    WiFi.mode(WIFI_MODE_NULL);
-  }
-  for (i = 0; i < value; i++)
-  {
-    Heltec.display.drawString(0, 20, "Scan start...");
-    Heltec.display.display();
-
-    int n = WiFi.scanNetworks();
-    Heltec.display.drawString(0, 30, "Scan done");
-    Heltec.display.display();
-    Heltec.display.clear();
-
-    if (n == 0)
-    {
-      Heltec.display.clear();
-      Heltec.display.drawString(0, 0, "no network found");
-      Heltec.display.display();
-      // while(1);
-    }
-    else
-    {
-      Heltec.display.drawString(0, 0, (String)n);
-      Heltec.display.drawString(14, 0, "networks found:");
-      Heltec.display.display();
-
-      for (int i = 0; i < n; ++i)
-      {
-        // Print SSID and RSSI for each network found
-        Heltec.display.drawString(0, (i + 1) * 9, (String)(i + 1));
-        Heltec.display.drawString(6, (i + 1) * 9, ":");
-        Heltec.display.drawString(12, (i + 1) * 9, (String)(WiFi.SSID(i)));
-        Heltec.display.drawString(90, (i + 1) * 9, " (");
-        Heltec.display.drawString(98, (i + 1) * 9, (String)(WiFi.RSSI(i)));
-        Heltec.display.drawString(114, (i + 1) * 9, ")");
-        //            display.println((WiFi.encryptionType(i) ==
-        //            WIFI_AUTH_OPEN)?" ":"*");
-        delay(10);
-      }
-    }
-
-    Heltec.display.display();
-    delay(800);
-    Heltec.display.clear();
-  }
-}
-
-static bool resendflag = false;
 static void interrupt_GPIO0()
 {
   delay(10);
   if (digitalRead(Heltec_ESP32::BUTTON) == LOW && digitalRead(Heltec_ESP32::LED) == LOW)
   {
-    resendflag = true;
+    sendFlag = true;
   }
 }
 
@@ -148,51 +94,46 @@ void setup()
   WiFi.mode(WIFI_STA);
   WiFi.setAutoConnect(true);
 
-  WIFIScan(1);
-
   attachInterrupt(Heltec_ESP32::BUTTON, interrupt_GPIO0, FALLING);
   LoRa.onReceive(onReceive);
-  Heltec.send(counter);
-  counter++;
-  LoRa.receive();
-  Heltec.displaySendReceive();
+  Heltec.send(counterSend);
+  counterSend++;
+  Heltec.drawRecv();
 }
 
 void loop()
 {
-  if (resendflag)
+  Heltec.display.clear();
+
+  if (sendFlag)
   {
-    resendflag = false;
-    Heltec.send(counter);
-    counter++;
-    LoRa.receive();
-    Heltec.displaySendReceive(counter, packSize, packet, rssi);
+    Heltec.send(counterSend);
+    counterSend++;
+    sendFlag = false;
   }
-  if (receiveflag)
+  LoRa.receive();
+
+  if (counterRecv == 0)
   {
-    digitalWrite(Heltec_ESP32::LED, HIGH);
-    Heltec.displaySendReceive(counter, packSize, packet, rssi);
-    delay(10);
-    receiveflag = false;
-    Heltec.send(counter);
-    counter++;
-    LoRa.receive();
-    Heltec.displaySendReceive(counter, packSize, packet, rssi);
-    digitalWrite(Heltec_ESP32::LED, LOW);
+    Heltec.drawRecv();
   }
+  else
+  {
+    Heltec.drawRecv(packetSize, packet, LoRa.packetRssi());
+  }
+  Heltec.drawSend(counterSend);
+  Heltec.display.display();
 }
 
-static void onReceive(int packetSize) // LoRa receiver interrupt service
+static void onReceive(int pSize)
 {
   packet = "";
-  packSize = packetSize;
-
   while (LoRa.available())
   {
     packet += (char)LoRa.read();
   }
 
-  Serial.println(packet);
-  rssi = LoRa.packetRssi();
-  receiveflag = true;
+  packetSize = pSize;
+
+  counterRecv++;
 }

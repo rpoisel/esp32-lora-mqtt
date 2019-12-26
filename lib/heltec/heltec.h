@@ -25,9 +25,12 @@ class Heltec_ESP32
   void begin(bool DisplayEnable = true, bool LoRaEnable = true, bool SerialEnable = true,
              bool PABOOST = true, long BAND = 868E6);
   void logo();
-  void displaySendReceive(size_t cnt, int packSize, String const& packet, int rssi);
-  void displaySendReceive(String const& cnt = String("--"), String const& packSize = String("--"),
-                          String const& packet = String(), String const& rssi = String("--"));
+  void drawSend(size_t cnt);
+  void drawSend(String const& cnt);
+  void drawRecv(int packSize, String const& packet, int rssi);
+  void drawRecv(String const& packSize = String("--"), String const& packet = String(),
+                   String const& rssi = String("--"));
+
   void send(size_t cnt);
 
   /* wifi kit 32 and WiFi LoRa 32(V1) do not have vext */
