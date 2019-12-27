@@ -4,14 +4,12 @@
 #include <Arduino.h>
 #include <SSD1306Wire.h>
 
-#include <functional>
-
 void globalOnReceive(int pSize);
 using ButtonState = uint8_t;
 void globalOnButton();
-using ReceiveCb = std::function<void(String const& packet, int rssi)>;
-using ButtonCb = std::function<void(ButtonState state)>;
-using DrawCb = std::function<void(SSD1306Wire* display)>;
+using ReceiveCb = void(*)(String const& packet, int rssi);
+using ButtonCb = void(*)(ButtonState state);
+using DrawCb = void(*)(SSD1306Wire* display);
 
 class Heltec_ESP32
 {
