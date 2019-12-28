@@ -8,7 +8,7 @@
 
 Heltec_ESP32::Heltec_ESP32()
     : display(0x3c, SDA_OLED, SCL_OLED, RST_OLED, GEOMETRY_128_64),
-      onReceiveCb([](String const& packet, int rssi) {}), onButtonCb([](ButtonState state) {}),
+      onReceiveCb([](LoRaMessage const& msg, int rssi) {}), onButtonCb([](ButtonState state) {}),
       onDrawCb([](SSD1306Wire* display) {}), flagButton(false)
 {
 }
@@ -178,12 +178,12 @@ Heltec_ESP32 Heltec;
 
 void globalOnReceive(int pSize)
 {
-  String packet;
-  while (LoRa.available())
+  LoRaMessage msg{0, {'\0'}};
+  for (msg.len = 0; LoRa.available(); msg.len++)
   {
-    packet += (char)LoRa.read();
+    msg.buf[msg.len] = static_cast<byte>(LoRa.read());
   }
-  Heltec.onReceiveCb(packet, LoRa.packetRssi());
+  Heltec.onReceiveCb(msg, LoRa.packetRssi());
 }
 
 void globalOnButton()
