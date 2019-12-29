@@ -46,8 +46,7 @@ void setup()
       display->drawString(0, 50, "Packet " + String(counterSend, DEC) + " sent done");
     }
   });
-  xTaskCreate(TaskLoRaMsgProcessor, "LoRaMsgReader", 4096 /* stack size */,
-              &processor /* parameter */, 2 /* priority */, nullptr /* task handle */);
+  processor.begin();
   Heltec.begin(true /*DisplayEnable Enable*/, true /*LoRa Enable*/, true /*Serial Enable*/,
                true /*LoRa use PABOOST*/, BAND /*LoRa RF working band*/);
 }

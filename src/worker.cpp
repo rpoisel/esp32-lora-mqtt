@@ -1,8 +1,14 @@
 #include "worker.h"
 
-void TaskLoRaMsgProcessor(void* param)
+void LoRaMsgProcessor::taskWrapper(void* param)
 {
   static_cast<LoRaMsgProcessor*>(param)->processMsgs();
+}
+
+void LoRaMsgProcessor::begin()
+{
+  xTaskCreate(taskWrapper, "LoRaMsgReader", 4096 /* stack size */,
+              this /* parameter */, 2 /* priority */, nullptr /* task handle */);
 }
 
 void LoRaMsgProcessor::enqueue(LoRaMessage const& msg)
