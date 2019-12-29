@@ -1,14 +1,21 @@
-#include <heltec.h>
-
-#include <FreeRTOS.h>
+#include "worker.h"
 
 void TaskLoRaMsgProcessor(void* param)
 {
+  static_cast<LoRaMsgProcessor*>(param)->processMsgs();
+}
+
+void LoRaMsgProcessor::enqueue(LoRaMessage const& msg)
+{
+  xQueueSend(loRaMessages, &msg, portMAX_DELAY);
+}
+
+void LoRaMsgProcessor::processMsgs()
+{
   LoRaMessage msg;
-  QueueHandle_t* queue = static_cast<QueueHandle_t*>(param);
   for (;;)
   {
-    xQueueReceive(*queue, &msg, portMAX_DELAY);
+    xQueueReceive(loRaMessages, &msg, portMAX_DELAY);
     Serial.print("Message: ");
     for (size_t i = 0; i < msg.len; i++)
     {

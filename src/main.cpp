@@ -5,14 +5,12 @@
 #include <FreeRTOS.h>
 
 constexpr long const BAND = 868E6; // you can set band here directly,e.g. 868E6,915E6
-constexpr size_t const LORA_QUEUE_LENGTH = 4;
 
+static LoRaMsgProcessor processor;
 static size_t counterRecv;
 static size_t counterSend;
 static LoRaMessage lastPacket;
 static int lastRssi;
-
-static QueueHandle_t loRaMessages = xQueueCreate(LORA_QUEUE_LENGTH, sizeof(LoRaMessage));
 
 void setup()
 {
@@ -20,7 +18,7 @@ void setup()
     counterRecv++;
     lastPacket = msg;
     lastRssi = rssi;
-    xQueueSend(loRaMessages, &msg, portMAX_DELAY);
+    processor.enqueue(msg);
   });
   Heltec.onButton([](ButtonState state) {
     counterSend++;
@@ -49,7 +47,7 @@ void setup()
     }
   });
   xTaskCreate(TaskLoRaMsgProcessor, "LoRaMsgReader", 4096 /* stack size */,
-              &loRaMessages /* parameter */, 2 /* priority */, nullptr /* task handle */);
+              &processor /* parameter */, 2 /* priority */, nullptr /* task handle */);
   Heltec.begin(true /*DisplayEnable Enable*/, true /*LoRa Enable*/, true /*Serial Enable*/,
                true /*LoRa use PABOOST*/, BAND /*LoRa RF working band*/);
 }
