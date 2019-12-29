@@ -83,7 +83,16 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
     }
   }
   pinMode(LED, OUTPUT);
-  LoRa.onReceive(globalOnReceive);
+  LoRa.onReceive(
+      [](void* context, int pSize) {
+        LoRaMessage msg{0, {'\0'}};
+        for (msg.len = 0; LoRa.available(); msg.len++)
+        {
+          msg.buf[msg.len] = static_cast<byte>(LoRa.read());
+        }
+        static_cast<Heltec_ESP32*>(context)->onReceiveCb(msg, LoRa.packetRssi());
+      },
+      this);
   attachInterrupt(BUTTON, globalOnButton, FALLING);
   display.clear();
 
@@ -174,18 +183,6 @@ void Heltec_ESP32::VextOFF() // Vext default OFF
   digitalWrite(Vext, HIGH);
 }
 
-Heltec_ESP32 Heltec;
-
-void globalOnReceive(int pSize)
-{
-  LoRaMessage msg{0, {'\0'}};
-  for (msg.len = 0; LoRa.available(); msg.len++)
-  {
-    msg.buf[msg.len] = static_cast<byte>(LoRa.read());
-  }
-  Heltec.onReceiveCb(msg, LoRa.packetRssi());
-}
-
 void globalOnButton()
 {
   if (digitalRead(Heltec_ESP32::BUTTON) == LOW)
@@ -193,3 +190,5 @@ void globalOnButton()
     Heltec.flagButton = true;
   }
 }
+
+Heltec_ESP32 Heltec;

@@ -54,7 +54,6 @@ class Heltec_ESP32
   DrawCb onDrawCb;
   volatile bool flagButton;
 
-  friend void globalOnReceive(int pSize);
   friend void globalOnButton();
 };
 
