@@ -14,9 +14,9 @@ struct LoRaMessage
 void globalOnReceive(int pSize);
 using ButtonState = uint8_t;
 void globalOnButton();
-using ReceiveCb = void(*)(LoRaMessage const& msg, int rssi);
-using ButtonCb = void(*)(ButtonState state);
-using DrawCb = void(*)(SSD1306Wire* display);
+using ReceiveCb = void (*)(LoRaMessage const& msg, int rssi);
+using ButtonCb = void (*)(ButtonState state);
+using DrawCb = void (*)(SSD1306Wire* display);
 
 class Heltec_ESP32
 {
@@ -34,12 +34,9 @@ class Heltec_ESP32
   ~Heltec_ESP32();
 
   void begin(bool DisplayEnable = true, bool LoRaEnable = true, bool SerialEnable = true,
-             bool PABOOST = true, long BAND = 868E6);
+             bool PABOOST = true, long BAND = 868E6, ReceiveCb receiveCb = nullptr,
+             ButtonCb buttonCb = nullptr, DrawCb drawCb = nullptr);
   void loop();
-
-  void onReceive(ReceiveCb const& cb);
-  void onButton(ButtonCb const& cb);
-  void onDraw(DrawCb const& cb);
 
   void send(size_t cnt);
 

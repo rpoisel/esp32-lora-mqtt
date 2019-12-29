@@ -15,10 +15,11 @@ class LoRaMsgProcessor
 
   void begin();
   void enqueue(LoRaMessage const& msg);
-  void processMsgs();
 
   private:
   static constexpr size_t const LORA_QUEUE_LENGTH = 4;
+
+  void processMsgs();
 
   QueueHandle_t loRaMessages;
 };

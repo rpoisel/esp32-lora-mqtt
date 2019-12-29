@@ -7,9 +7,8 @@
 #include <WiFi.h>
 
 Heltec_ESP32::Heltec_ESP32()
-    : display(0x3c, SDA_OLED, SCL_OLED, RST_OLED, GEOMETRY_128_64),
-      onReceiveCb([](LoRaMessage const& msg, int rssi) {}), onButtonCb([](ButtonState state) {}),
-      onDrawCb([](SSD1306Wire* display) {}), flagButton(false)
+    : display(0x3c, SDA_OLED, SCL_OLED, RST_OLED, GEOMETRY_128_64), onReceiveCb(nullptr),
+      onButtonCb(nullptr), onDrawCb(nullptr), flagButton(false)
 {
 }
 
@@ -18,8 +17,12 @@ Heltec_ESP32::~Heltec_ESP32()
 }
 
 void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable, bool PABOOST,
-                         long BAND)
+                         long BAND, ReceiveCb receiveCb, ButtonCb buttonCb, DrawCb drawCb)
 {
+  onReceiveCb = receiveCb;
+  onButtonCb = buttonCb;
+  onDrawCb = drawCb;
+
   // UART
   if (SerialEnable)
   {
@@ -90,7 +93,11 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
         {
           msg.buf[msg.len] = static_cast<byte>(LoRa.read());
         }
-        static_cast<Heltec_ESP32*>(context)->onReceiveCb(msg, LoRa.packetRssi());
+        auto heltec = static_cast<Heltec_ESP32*>(context);
+        if (heltec->onReceiveCb)
+        {
+          heltec->onReceiveCb(msg, LoRa.packetRssi());
+        }
       },
       this);
   attachInterrupt(BUTTON, globalOnButton, FALLING);
@@ -141,26 +148,17 @@ void Heltec_ESP32::loop()
   LoRa.receive();
   if (flagButton)
   {
-    onButtonCb(LOW);
+    if (onButtonCb)
+    {
+      onButtonCb(LOW);
+    }
     flagButton = false;
   }
-  onDrawCb(&display);
+  if (onDrawCb)
+  {
+    onDrawCb(&display);
+  }
   display.display();
-}
-
-void Heltec_ESP32::onReceive(ReceiveCb const& cb)
-{
-  onReceiveCb = cb;
-}
-
-void Heltec_ESP32::onButton(ButtonCb const& cb)
-{
-  onButtonCb = cb;
-}
-
-void Heltec_ESP32::onDraw(DrawCb const& cb)
-{
-  onDrawCb = cb;
 }
 
 void Heltec_ESP32::send(size_t cnt)
