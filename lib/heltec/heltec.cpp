@@ -4,7 +4,6 @@
 
 #include "heltec.h"
 #include <LoRa.h>
-#include <WiFi.h>
 
 Heltec_ESP32::Heltec_ESP32()
     : display(0x3c, SDA_OLED, SCL_OLED, RST_OLED, GEOMETRY_128_64), onReceiveCb(nullptr),
@@ -17,7 +16,8 @@ Heltec_ESP32::~Heltec_ESP32()
 }
 
 void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable, bool PABOOST,
-                         long BAND, ReceiveCb receiveCb, ButtonCb buttonCb, DrawCb drawCb)
+                         long BAND, ReceiveCb receiveCb, ButtonCb buttonCb, DrawCb drawCb,
+                         WiFiMulti* wiFiMulti)
 {
   onReceiveCb = receiveCb;
   onButtonCb = buttonCb;
@@ -100,46 +100,32 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
         }
       },
       this);
-  attachInterrupt(BUTTON, globalOnButton, FALLING);
-  display.clear();
 
   // WiFi
-  // Set WiFi to station mode and disconnect from an AP if it was previously connected
-  WiFi.disconnect(true);
-  delay(1000);
-  WiFi.mode(WIFI_STA);
-  WiFi.setAutoConnect(true);
-  WiFi.begin("SSID",
-             "Password"); // fill in "Your WiFi SSID","Your Password"
-  delay(100);
-
-  byte count = 0;
-  while (WiFi.status() != WL_CONNECTED && count < 10)
+  if (wiFiMulti)
   {
-    count++;
-    display.drawString(0, 0, "Connecting...");
-    display.display();
+    if (wiFiMulti->run() == WL_CONNECTED)
+    {
+      if (SerialEnable)
+      {
+        Serial.println("");
+        Serial.println("WiFi connected");
+        Serial.println("IP address: ");
+        Serial.println(WiFi.localIP());
+      }
+      if (DisplayEnable)
+      {
+        display.clear();
+        display.drawString(0, 0, "WiFi success!");
+        display.drawString(0, 10, String("IP Address: ") + WiFi.localIP().toString());
+        display.display();
+        delay(300);
+      }
+    }
   }
 
+  attachInterrupt(BUTTON, globalOnButton, FALLING);
   display.clear();
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    display.drawString(0, 0, "Connecting...OK.");
-    display.display();
-  }
-  else
-  {
-    display.clear();
-    display.drawString(0, 0, "Connecting...Failed");
-    display.display();
-  }
-  display.drawString(0, 10, "WIFI Setup done");
-  display.display();
-
-  WiFi.disconnect(true);
-  delay(1000);
-  WiFi.mode(WIFI_STA);
-  WiFi.setAutoConnect(true);
 }
 
 void Heltec_ESP32::loop()

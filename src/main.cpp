@@ -1,10 +1,15 @@
+#include "config.h"
 #include "worker.h"
 
 #include <heltec.h>
 
 #include <FreeRTOS.h>
+#include <algorithm>
+
+using namespace LoRaGateway;
 
 static LoRaMsgProcessor processor;
+static WiFiMulti wiFiMulti;
 static size_t counterRecv;
 static size_t counterSend;
 static LoRaMessage lastPacket;
@@ -16,15 +21,18 @@ static void displayInfo(SSD1306Wire* display);
 
 void setup()
 {
+  for_each(
+      WIFI_CREDENTIALS.begin(), WIFI_CREDENTIALS.end(),
+      [](std::pair<char const*, char const*> const& c) { wiFiMulti.addAP(c.first, c.second); });
+  Heltec.begin(ENABLE_DISPLAY, ENABLE_LORA, ENABLE_SERIAL, ENABLE_LORA_BOOST, LORA_BAND,
+               &messageReceived, &buttonPressed, &displayInfo, &wiFiMulti);
   processor.begin();
-  Heltec.begin(true /* enable display */, true /* enable LoRa */, true /* enable serial */,
-               true /* enable boost */, 868E6 /* band */, &messageReceived, &buttonPressed,
-               &displayInfo);
 }
 
 void loop()
 {
   Heltec.loop();
+  wiFiMulti.run();
   delay(20);
 }
 

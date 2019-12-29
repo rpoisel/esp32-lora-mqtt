@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 #include <SSD1306Wire.h>
+#include <WiFi.h>
+#include <WiFiMulti.h>
 
 constexpr size_t const LORA_BUF_LEN = 255; // see LoRa.cpp
 struct LoRaMessage
@@ -35,7 +37,7 @@ class Heltec_ESP32
 
   void begin(bool DisplayEnable = true, bool LoRaEnable = true, bool SerialEnable = true,
              bool PABOOST = true, long BAND = 868E6, ReceiveCb receiveCb = nullptr,
-             ButtonCb buttonCb = nullptr, DrawCb drawCb = nullptr);
+             ButtonCb buttonCb = nullptr, DrawCb drawCb = nullptr, WiFiMulti* wiFiMulti = nullptr);
   void loop();
 
   void send(size_t cnt);

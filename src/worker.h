@@ -3,15 +3,14 @@
 #include <heltec.h>
 
 #include <FreeRTOS.h>
+#include <PubSubClient.h>
 
 void TaskLoRaMsgProcessor(void* param);
 
 class LoRaMsgProcessor
 {
   public:
-  LoRaMsgProcessor() : loRaMessages(xQueueCreate(LORA_QUEUE_LENGTH, sizeof(LoRaMessage)))
-  {
-  }
+  LoRaMsgProcessor();
 
   void begin();
   void enqueue(LoRaMessage const& msg);
@@ -22,4 +21,6 @@ class LoRaMsgProcessor
   void processMsgs();
 
   QueueHandle_t loRaMessages;
+  WiFiClient wiFiClient;
+  PubSubClient pubSubClient;
 };
