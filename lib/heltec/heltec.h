@@ -3,20 +3,21 @@
 
 #include <Arduino.h>
 #include <SSD1306Wire.h>
-#include <WiFi.h>
-#include <WiFiMulti.h>
+
+#include <FreeRTOS.h>
 
 constexpr size_t const LORA_BUF_LEN = 255; // see LoRa.cpp
 struct LoRaMessage
 {
   size_t len;
+  int rssi;
   byte buf[LORA_BUF_LEN];
 };
 
 void globalOnReceive(int pSize);
 using ButtonState = uint8_t;
 void globalOnButton();
-using ReceiveCb = void (*)(LoRaMessage const& msg, int rssi);
+using ReceiveCb = void (*)(LoRaMessage const& msg);
 using ButtonCb = void (*)(ButtonState state);
 using DrawCb = void (*)(SSD1306Wire* display);
 
@@ -37,7 +38,7 @@ class Heltec_ESP32
 
   void begin(bool DisplayEnable = true, bool LoRaEnable = true, bool SerialEnable = true,
              bool PABOOST = true, long BAND = 868E6, ReceiveCb receiveCb = nullptr,
-             ButtonCb buttonCb = nullptr, DrawCb drawCb = nullptr, WiFiMulti* wiFiMulti = nullptr);
+             ButtonCb buttonCb = nullptr, DrawCb drawCb = nullptr);
   void loop();
 
   void send(size_t cnt);
@@ -47,11 +48,14 @@ class Heltec_ESP32
   void VextOFF();
 
   private:
+  static constexpr size_t const LORA_QUEUE_LEN = 4;
+
   SSD1306Wire display;
   ReceiveCb onReceiveCb;
   ButtonCb onButtonCb;
   DrawCb onDrawCb;
   volatile bool flagButton;
+  QueueHandle_t loRaMessages;
 
   friend void globalOnButton();
 };

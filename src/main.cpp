@@ -1,47 +1,78 @@
 #include "config.h"
-#include "worker.h"
 
 #include <heltec.h>
 
-#include <FreeRTOS.h>
+#include <PubSubClient.h>
+#include <WiFi.h>
+#include <WiFiMulti.h>
+
 #include <algorithm>
 
 using namespace LoRaGateway;
 
-static LoRaMsgProcessor processor;
 static WiFiMulti wiFiMulti;
+static WiFiClient wiFiClient;
+static PubSubClient pubSubClient(wiFiClient);
 static size_t counterRecv;
 static size_t counterSend;
 static LoRaMessage lastPacket;
-static int lastRssi;
+static bool connConfigured;
 
-static void messageReceived(LoRaMessage const& msg, int rssi);
+static void setupWiFi();
+static void messageReceived(LoRaMessage const& msg);
 static void buttonPressed(ButtonState state);
 static void displayInfo(SSD1306Wire* display);
 
 void setup()
 {
+  Heltec.begin(ENABLE_DISPLAY, ENABLE_LORA, ENABLE_SERIAL, ENABLE_LORA_BOOST, LORA_BAND,
+               &messageReceived, &buttonPressed, &displayInfo);
   for_each(
       WIFI_CREDENTIALS.begin(), WIFI_CREDENTIALS.end(),
       [](std::pair<char const*, char const*> const& c) { wiFiMulti.addAP(c.first, c.second); });
-  Heltec.begin(ENABLE_DISPLAY, ENABLE_LORA, ENABLE_SERIAL, ENABLE_LORA_BOOST, LORA_BAND,
-               &messageReceived, &buttonPressed, &displayInfo, &wiFiMulti);
-  processor.begin();
+  pubSubClient.setServer(MQTT_BROKER, MQTT_PORT);
 }
 
 void loop()
 {
-  Heltec.loop();
-  wiFiMulti.run();
+  if (wiFiMulti.run() == WL_CONNECTED)
+  {
+    if (!connConfigured)
+    {
+      Serial.println("");
+      Serial.println("WiFi connected");
+      Serial.println("IP address: ");
+      Serial.println(WiFi.localIP());
+      connConfigured = true;
+    }
+    if (!pubSubClient.connected())
+    {
+      if (pubSubClient.connect(MQTT_CLIENTID))
+      {
+        Serial.println("MQTT connected.");
+      }
+    }
+    Heltec.loop();
+    if (pubSubClient.connected())
+    {
+      pubSubClient.loop();
+    }
+  }
+  else
+  {
+    connConfigured = false;
+  }
   delay(20);
 }
 
-static void messageReceived(LoRaMessage const& msg, int rssi)
+static void messageReceived(LoRaMessage const& msg)
 {
   counterRecv++;
   lastPacket = msg;
-  lastRssi = rssi;
-  processor.enqueue(msg);
+  if (pubSubClient.connected())
+  {
+    pubSubClient.publish(MQTT_TOPIC, &msg.buf[0], msg.len);
+  }
 }
 
 static void buttonPressed(ButtonState state)
@@ -61,7 +92,7 @@ static void displayInfo(SSD1306Wire* display)
     display->drawString(
         0, 0, "Packet " + String(counterRecv, DEC) + ", size " + String(lastPacket.len, DEC) + ":");
     display->drawString(0, 10, reinterpret_cast<char const*>(lastPacket.buf));
-    display->drawString(0, 20, "With RSSI: " + String(lastRssi, DEC));
+    display->drawString(0, 20, "With RSSI: " + String(lastPacket.rssi, DEC));
   }
 
   if (counterSend == 0)

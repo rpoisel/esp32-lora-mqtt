@@ -7,7 +7,8 @@
 
 Heltec_ESP32::Heltec_ESP32()
     : display(0x3c, SDA_OLED, SCL_OLED, RST_OLED, GEOMETRY_128_64), onReceiveCb(nullptr),
-      onButtonCb(nullptr), onDrawCb(nullptr), flagButton(false)
+      onButtonCb(nullptr), onDrawCb(nullptr), flagButton(false),
+      loRaMessages(xQueueCreate(LORA_QUEUE_LEN, sizeof(LoRaMessage)))
 {
 }
 
@@ -16,8 +17,7 @@ Heltec_ESP32::~Heltec_ESP32()
 }
 
 void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable, bool PABOOST,
-                         long BAND, ReceiveCb receiveCb, ButtonCb buttonCb, DrawCb drawCb,
-                         WiFiMulti* wiFiMulti)
+                         long BAND, ReceiveCb receiveCb, ButtonCb buttonCb, DrawCb drawCb)
 {
   onReceiveCb = receiveCb;
   onButtonCb = buttonCb;
@@ -88,41 +88,21 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
   pinMode(LED, OUTPUT);
   LoRa.onReceive(
       [](void* context, int pSize) {
-        LoRaMessage msg{0, {'\0'}};
-        for (msg.len = 0; LoRa.available(); msg.len++)
+        LoRaMessage msg{0, -1, {'\0'}};
+        for (msg.len = 0; LoRa.available() && msg.len < LORA_BUF_LEN - 1 && msg.len < pSize;
+             msg.len++)
         {
           msg.buf[msg.len] = static_cast<byte>(LoRa.read());
         }
+        msg.rssi = LoRa.packetRssi();
         auto heltec = static_cast<Heltec_ESP32*>(context);
-        if (heltec->onReceiveCb)
+        if (xQueueSend(heltec->loRaMessages, &msg, 0) != pdTRUE)
         {
-          heltec->onReceiveCb(msg, LoRa.packetRssi());
+          Serial.print("Dropping LoRa message: ");
+          Serial.println(reinterpret_cast<char const*>(&msg.buf[0]));
         }
       },
       this);
-
-  // WiFi
-  if (wiFiMulti)
-  {
-    if (wiFiMulti->run() == WL_CONNECTED)
-    {
-      if (SerialEnable)
-      {
-        Serial.println("");
-        Serial.println("WiFi connected");
-        Serial.println("IP address: ");
-        Serial.println(WiFi.localIP());
-      }
-      if (DisplayEnable)
-      {
-        display.clear();
-        display.drawString(0, 0, "WiFi success!");
-        display.drawString(0, 10, String("IP Address: ") + WiFi.localIP().toString());
-        display.display();
-        delay(300);
-      }
-    }
-  }
 
   attachInterrupt(BUTTON, globalOnButton, FALLING);
   display.clear();
@@ -130,8 +110,14 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
 
 void Heltec_ESP32::loop()
 {
+  LoRaMessage msg;
+
   display.clear();
   LoRa.receive();
+  while (onReceiveCb && xQueueReceive(loRaMessages, &msg, 0) == pdTRUE)
+  {
+    onReceiveCb(msg);
+  }
   if (flagButton)
   {
     if (onButtonCb)
