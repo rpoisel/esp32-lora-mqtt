@@ -14,12 +14,12 @@ struct LoRaMessage
   byte buf[LORA_BUF_LEN];
 };
 
-void globalOnReceive(int pSize);
 using ButtonState = uint8_t;
-void globalOnButton();
 using ReceiveCb = void (*)(LoRaMessage const& msg);
 using ButtonCb = void (*)(ButtonState state);
 using DrawCb = void (*)(SSD1306Wire* display);
+
+void globalOnButton();
 
 class Heltec_ESP32
 {

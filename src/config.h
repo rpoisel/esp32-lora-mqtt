@@ -19,7 +19,9 @@ constexpr int const MQTT_PORT = 1883;
 constexpr char const* MQTT_TOPIC = "/LoRa/Node1/msg";
 constexpr char const* MQTT_CLIENTID = "ESP LORA2MQTT GW";
 
-std::vector<std::pair<char const*, char const*>> const WIFI_CREDENTIALS = {
+using PairCredentials = std::pair<char const*, char const*>;
+using VectorCredentials = std::vector<PairCredentials>;
+VectorCredentials const WIFI_CREDENTIALS = {
     // {"SSID", "PASSWORD"},
 };
 } // namespace LoRaGateway

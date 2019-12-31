@@ -6,8 +6,6 @@
 #include <WiFi.h>
 #include <WiFiMulti.h>
 
-#include <algorithm>
-
 using namespace LoRaGateway;
 
 static WiFiMulti wiFiMulti;
@@ -18,7 +16,6 @@ static size_t counterSend;
 static LoRaMessage lastPacket;
 static bool connConfigured;
 
-static void setupWiFi();
 static void messageReceived(LoRaMessage const& msg);
 static void buttonPressed(ButtonState state);
 static void displayInfo(SSD1306Wire* display);
@@ -27,9 +24,10 @@ void setup()
 {
   Heltec.begin(ENABLE_DISPLAY, ENABLE_LORA, ENABLE_SERIAL, ENABLE_LORA_BOOST, LORA_BAND,
                &messageReceived, &buttonPressed, &displayInfo);
-  for_each(
-      WIFI_CREDENTIALS.begin(), WIFI_CREDENTIALS.end(),
-      [](std::pair<char const*, char const*> const& c) { wiFiMulti.addAP(c.first, c.second); });
+  for (auto const& p : WIFI_CREDENTIALS)
+  {
+    wiFiMulti.addAP(p.first, p.second);
+  }
   pubSubClient.setServer(MQTT_BROKER, MQTT_PORT);
 }
 
@@ -49,7 +47,9 @@ void loop()
     {
       if (pubSubClient.connect(MQTT_CLIENTID))
       {
-        Serial.println("MQTT connected.");
+        Serial.print("MQTT connected. Publishing to ");
+        Serial.print(MQTT_TOPIC);
+        Serial.println(".");
       }
     }
     Heltec.loop();
