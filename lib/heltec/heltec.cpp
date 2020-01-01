@@ -16,8 +16,8 @@ Heltec_ESP32::~Heltec_ESP32()
 {
 }
 
-void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable, bool PABOOST,
-                         long BAND, ReceiveCb receiveCb, ButtonCb buttonCb, DrawCb drawCb)
+void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable, long BAND,
+                         ReceiveCb receiveCb, ButtonCb buttonCb, DrawCb drawCb)
 {
   onReceiveCb = receiveCb;
   onButtonCb = buttonCb;

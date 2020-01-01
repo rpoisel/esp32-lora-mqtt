@@ -7,7 +7,6 @@ namespace LoRaGateway
 {
 constexpr bool const ENABLE_DISPLAY = true;
 constexpr bool const ENABLE_LORA = true;
-constexpr bool const ENABLE_LORA_BOOST = true;
 constexpr bool const ENABLE_SERIAL = true;
 constexpr double const LORA_BAND = 868E6;
 

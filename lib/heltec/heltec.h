@@ -37,8 +37,8 @@ class Heltec_ESP32
   ~Heltec_ESP32();
 
   void begin(bool DisplayEnable = true, bool LoRaEnable = true, bool SerialEnable = true,
-             bool PABOOST = true, long BAND = 868E6, ReceiveCb receiveCb = nullptr,
-             ButtonCb buttonCb = nullptr, DrawCb drawCb = nullptr);
+             long BAND = 868E6, ReceiveCb receiveCb = nullptr, ButtonCb buttonCb = nullptr,
+             DrawCb drawCb = nullptr);
   void loop();
 
   void send(size_t cnt);
