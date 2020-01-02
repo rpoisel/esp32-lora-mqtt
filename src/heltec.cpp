@@ -3,12 +3,12 @@
 // information.
 
 #include "heltec.h"
+
 #include <LoRa.h>
 
 Heltec_ESP32::Heltec_ESP32()
     : display(0x3c, SDA_OLED, SCL_OLED, RST_OLED, GEOMETRY_128_64), onReceiveCb(nullptr),
-      onButtonCb(nullptr), onDrawCb(nullptr), flagButton(false),
-      loRaMessages(xQueueCreate(LORA_QUEUE_LEN, sizeof(LoRaMessage)))
+      onButtonCb(nullptr), onDrawCb(nullptr), flagButton(false), cBuffer()
 {
 }
 
@@ -96,11 +96,7 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
         }
         msg.rssi = LoRa.packetRssi();
         auto heltec = static_cast<Heltec_ESP32*>(context);
-        if (xQueueSend(heltec->loRaMessages, &msg, 0) != pdTRUE)
-        {
-          Serial.print("Dropping LoRa message: ");
-          Serial.println(reinterpret_cast<char const*>(&msg.buf[0]));
-        }
+        heltec->cBuffer.put(msg);
       },
       this);
 
@@ -110,13 +106,11 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
 
 void Heltec_ESP32::loop()
 {
-  LoRaMessage msg;
-
   display.clear();
   LoRa.receive();
-  while (onReceiveCb && xQueueReceive(loRaMessages, &msg, 0) == pdTRUE)
+  while (onReceiveCb && !cBuffer.empty())
   {
-    onReceiveCb(msg);
+    onReceiveCb(cBuffer.get());
   }
   if (flagButton)
   {

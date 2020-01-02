@@ -1,10 +1,10 @@
 #ifndef HELTEC_H_
 #define HELTEC_H_
 
+#include "circular.h"
+
 #include <Arduino.h>
 #include <SSD1306Wire.h>
-
-#include <FreeRTOS.h>
 
 constexpr size_t const LORA_BUF_LEN = 255; // see LoRa.cpp
 struct LoRaMessage
@@ -55,7 +55,7 @@ class Heltec_ESP32
   ButtonCb onButtonCb;
   DrawCb onDrawCb;
   volatile bool flagButton;
-  QueueHandle_t loRaMessages;
+  circular_buffer<LoRaMessage, 4> cBuffer;
 
   friend void globalOnButton();
 };
