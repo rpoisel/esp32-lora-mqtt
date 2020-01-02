@@ -2,6 +2,7 @@
 
 #include <heltec.h>
 
+#include <AES.h>
 #include <PubSubClient.h>
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -14,6 +15,7 @@ static PubSubClient pubSubClient(wiFiClient);
 static size_t counterRecv;
 static size_t counterSend;
 static LoRaMessage lastPacket;
+static AES256 aes256;
 
 static void messageReceived(LoRaMessage const& msg);
 static void buttonPressed(ButtonState state);
@@ -28,6 +30,7 @@ void setup()
     wiFiMulti.addAP(p.first, p.second);
   }
   pubSubClient.setServer(MQTT_BROKER, MQTT_PORT);
+  aes256.setKey(&AES_KEY[0], aes256.keySize());
 }
 
 void loop()
@@ -68,11 +71,30 @@ void loop()
 
 static void messageReceived(LoRaMessage const& msg)
 {
+  uint8_t decrypted[16];
   counterRecv++;
   lastPacket = msg;
   if (pubSubClient.connected())
   {
-    pubSubClient.publish(MQTT_TOPIC, &msg.buf[0], msg.len);
+    if (msg.len != 16)
+    {
+      pubSubClient.publish(MQTT_TOPIC_OTHER, &msg.buf[0], msg.len);
+      return;
+    }
+    aes256.decryptBlock(decrypted, &msg.buf[0]);
+    if (decrypted[0] == 'R' && decrypted[1] == 'P' && decrypted[2] == 'O')
+    {
+      uint8_t payload[13];
+      for (size_t cnt = 0; cnt < decrypted[3]; cnt++)
+      {
+        payload[cnt] = decrypted[cnt + 4 /* RPOx */];
+      }
+      pubSubClient.publish(MQTT_TOPIC, &payload[0], decrypted[3]);
+    }
+    else
+    {
+      pubSubClient.publish(MQTT_TOPIC_OTHER, &msg.buf[0], msg.len);
+    }
   }
   else
   {
