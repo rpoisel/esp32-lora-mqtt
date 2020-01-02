@@ -2,17 +2,10 @@
 #define HELTEC_H_
 
 #include "circular.h"
+#include "datatypes.h"
 
 #include <Arduino.h>
 #include <SSD1306Wire.h>
-
-constexpr size_t const LORA_BUF_LEN = 255; // see LoRa.cpp
-struct LoRaMessage
-{
-  size_t len;
-  int rssi;
-  byte buf[LORA_BUF_LEN];
-};
 
 using ButtonState = uint8_t;
 using ReceiveCb = void (*)(LoRaMessage const& msg);
