@@ -135,6 +135,13 @@ void Heltec_ESP32::send(size_t cnt)
   LoRa.endPacket();
 }
 
+void Heltec_ESP32::send(uint8_t const* buf, size_t buflen)
+{
+  LoRa.beginPacket();
+  LoRa.write(buf, buflen);
+  LoRa.endPacket();
+}
+
 void Heltec_ESP32::VextON()
 {
   pinMode(Vext, OUTPUT);

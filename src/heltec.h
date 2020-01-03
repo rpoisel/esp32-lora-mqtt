@@ -35,6 +35,7 @@ class Heltec_ESP32
   void loop();
 
   void send(size_t cnt);
+  void send(uint8_t const* buf, size_t buflen);
 
   /* wifi kit 32 and WiFi LoRa 32(V1) do not have vext */
   void VextON();

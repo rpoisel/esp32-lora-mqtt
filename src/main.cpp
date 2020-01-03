@@ -8,7 +8,11 @@
 #include <WiFi.h>
 #include <WiFiMulti.h>
 
+#include <esp_system.h>
+
 using namespace LoRaGateway;
+
+constexpr LoRaNodeID const LORA_GW_ID = 0xffff;
 
 static Config config;
 static WiFiMulti wiFiMulti;
@@ -85,7 +89,6 @@ void loop()
 
 static void messageReceived(LoRaMessage const& msg)
 {
-  uint8_t decrypted[16];
   counterRecv++;
   lastPacket = msg;
   if (pubSubClient.connected())
@@ -95,15 +98,34 @@ static void messageReceived(LoRaMessage const& msg)
       pubSubClient.publish(config.mqtt_topic_other, &msg.buf[0], msg.len);
       return;
     }
+
+    uint8_t decrypted[16];
     aes256.decryptBlock(decrypted, &msg.buf[0]);
-    if (decrypted[0] == 'R' && decrypted[1] == 'P' && decrypted[2] == 'O')
+    LoRaPayload const* payload = reinterpret_cast<LoRaPayload const*>(decrypted);
+    if (payload->signature[0] == 'R' && payload->signature[1] == 'P' &&
+        payload->signature[2] == 'O')
     {
-      uint8_t payload[13];
-      for (size_t cnt = 0; cnt < decrypted[3]; cnt++)
+      if (payload->cmd == GetNonce)
       {
-        payload[cnt] = decrypted[cnt + 4 /* RPOx */];
+        LoRaPayload response(LORA_GW_ID);
+        uint8_t encrypted[sizeof(response)];
+        response.cmd = PutNonce;
+        response.nonce = esp_random();
+        // TODO: store nonce for given payload->nodeID
+        aes256.encryptBlock(encrypted, reinterpret_cast<uint8_t const*>(&response));
+        Heltec.send(encrypted, sizeof(encrypted));
       }
-      pubSubClient.publish(config.mqtt_topic, &payload[0], decrypted[3]);
+      else if (payload->cmd == SensorData)
+      {
+
+        String mqttPayload("Node ");
+        // TODO: payload->sensordata.nonce
+        mqttPayload += payload->nodeID;
+        mqttPayload += ": ";
+        mqttPayload += payload->sensordata.value;
+        pubSubClient.publish(config.mqtt_topic, mqttPayload.c_str(), mqttPayload.length() + 1);
+        // TODO: invalidate nonce
+      }
     }
     else
     {
