@@ -39,7 +39,7 @@ void setup()
     wiFiMulti.addAP(config.wifi_credentials[cnt].ssid, config.wifi_credentials[cnt].password);
   }
   pubSubClient.setServer(config.mqtt_broker, config.mqtt_port);
-  aes256.setKey(&config.aes_key[0], aes256.keySize());
+  aes256.setKey(&config.aes_key[0], sizeof(config.aes_key));
 }
 
 void loop()
