@@ -31,6 +31,11 @@ void setup()
   EEPROM.commit();
 #else
   EEPROM.get(0, config);
+  if (config.signature[0] != EEPROM_SIGNATURE[0] || config.signature[1] != EEPROM_SIGNATURE[1] ||
+      config.signature[2] != EEPROM_SIGNATURE[2] || config.signature[3] != EEPROM_SIGNATURE[3])
+  {
+    config = Config();
+  }
 #endif
   Heltec.begin(config.enable_display, config.enable_lora, config.enable_serial, config.lora_band,
                &messageReceived, &buttonPressed, &displayInfo);
