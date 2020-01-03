@@ -20,7 +20,7 @@ static WiFiClient wiFiClient;
 static PubSubClient pubSubClient(wiFiClient);
 static size_t counterRecv;
 static size_t counterSend;
-static LoRaMessage lastPacket;
+static LoRaMessage lastMessage;
 static AES256 aes256;
 
 static void messageReceived(LoRaMessage const& msg);
@@ -90,7 +90,7 @@ void loop()
 static void messageReceived(LoRaMessage const& msg)
 {
   counterRecv++;
-  lastPacket = msg;
+  lastMessage = msg;
   if (pubSubClient.connected())
   {
     if (msg.len != 16)
@@ -124,6 +124,8 @@ static void messageReceived(LoRaMessage const& msg)
         mqttPayload += ": ";
         mqttPayload += payload->sensordata.value;
         pubSubClient.publish(config.mqtt_topic, mqttPayload.c_str(), mqttPayload.length() + 1);
+        ::strncpy(reinterpret_cast<char*>(&lastMessage.buf[0]), mqttPayload.c_str(),
+                  mqttPayload.length() + 1 /* TODO: check */);
         // TODO: invalidate nonce
       }
     }
@@ -153,10 +155,11 @@ static void displayInfo(SSD1306Wire* display)
   }
   else
   {
-    display->drawString(
-        0, 0, "Packet " + String(counterRecv, DEC) + ", size " + String(lastPacket.len, DEC) + ":");
-    display->drawString(0, 10, reinterpret_cast<char const*>(lastPacket.buf));
-    display->drawString(0, 20, "With RSSI: " + String(lastPacket.rssi, DEC));
+    display->drawString(0, 0,
+                        "Packet " + String(counterRecv, DEC) + ", size " +
+                            String(lastMessage.len, DEC) + ":");
+    display->drawString(0, 10, reinterpret_cast<char const*>(lastMessage.buf));
+    display->drawString(0, 20, "With RSSI: " + String(lastMessage.rssi, DEC));
   }
 
   display->drawString(0, 30, pubSubClient.connected() ? "MQTT connected." : "MQTT disconnected.");
