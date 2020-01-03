@@ -3,12 +3,14 @@
 #include <heltec.h>
 
 #include <AES.h>
+#include <EEPROM.h>
 #include <PubSubClient.h>
 #include <WiFi.h>
 #include <WiFiMulti.h>
 
 using namespace LoRaGateway;
 
+static Config config;
 static WiFiMulti wiFiMulti;
 static WiFiClient wiFiClient;
 static PubSubClient pubSubClient(wiFiClient);
@@ -23,14 +25,21 @@ static void displayInfo(SSD1306Wire* display);
 
 void setup()
 {
-  Heltec.begin(ENABLE_DISPLAY, ENABLE_LORA, ENABLE_SERIAL, LORA_BAND, &messageReceived,
-               &buttonPressed, &displayInfo);
-  for (auto const& p : WIFI_CREDENTIALS)
+  EEPROM.begin(512);
+#if 0
+  EEPROM.put(0, config);
+  EEPROM.commit();
+#else
+  EEPROM.get(0, config);
+#endif
+  Heltec.begin(config.enable_display, config.enable_lora, config.enable_serial, config.lora_band,
+               &messageReceived, &buttonPressed, &displayInfo);
+  for (size_t cnt = 0; cnt < config.num_wifi_credentials; cnt++)
   {
-    wiFiMulti.addAP(p.first, p.second);
+    wiFiMulti.addAP(config.wifi_credentials[cnt].ssid, config.wifi_credentials[cnt].password);
   }
-  pubSubClient.setServer(MQTT_BROKER, MQTT_PORT);
-  aes256.setKey(&AES_KEY[0], aes256.keySize());
+  pubSubClient.setServer(config.mqtt_broker, config.mqtt_port);
+  aes256.setKey(&config.aes_key[0], aes256.keySize());
 }
 
 void loop()
@@ -48,10 +57,10 @@ void loop()
     }
     if (!pubSubClient.connected())
     {
-      if (pubSubClient.connect(MQTT_CLIENTID))
+      if (pubSubClient.connect(config.mqtt_clientid))
       {
         Serial.print("MQTT connected. Publishing to ");
-        Serial.print(MQTT_TOPIC);
+        Serial.print(config.mqtt_topic);
         Serial.println(".");
       }
     }
@@ -78,7 +87,7 @@ static void messageReceived(LoRaMessage const& msg)
   {
     if (msg.len != 16)
     {
-      pubSubClient.publish(MQTT_TOPIC_OTHER, &msg.buf[0], msg.len);
+      pubSubClient.publish(config.mqtt_topic_other, &msg.buf[0], msg.len);
       return;
     }
     aes256.decryptBlock(decrypted, &msg.buf[0]);
@@ -89,11 +98,11 @@ static void messageReceived(LoRaMessage const& msg)
       {
         payload[cnt] = decrypted[cnt + 4 /* RPOx */];
       }
-      pubSubClient.publish(MQTT_TOPIC, &payload[0], decrypted[3]);
+      pubSubClient.publish(config.mqtt_topic, &payload[0], decrypted[3]);
     }
     else
     {
-      pubSubClient.publish(MQTT_TOPIC_OTHER, &msg.buf[0], msg.len);
+      pubSubClient.publish(config.mqtt_topic_other, &msg.buf[0], msg.len);
     }
   }
   else
