@@ -35,8 +35,7 @@ void setup()
   EEPROM.commit();
 #else
   EEPROM.get(0, config);
-  if (config.signature[0] != EEPROM_SIGNATURE[0] || config.signature[1] != EEPROM_SIGNATURE[1] ||
-      config.signature[2] != EEPROM_SIGNATURE[2] || config.signature[3] != EEPROM_SIGNATURE[3])
+  if (!config.signatureOK())
   {
     config = Config();
   }
@@ -91,53 +90,62 @@ static void messageReceived(LoRaMessage const& msg)
 {
   counterRecv++;
   lastMessage = msg;
-  if (pubSubClient.connected())
+  if (msg.len != LoRaPayload::size())
   {
-    if (msg.len != 16)
-    {
-      pubSubClient.publish(config.mqtt_topic_other, &msg.buf[0], msg.len);
-      return;
-    }
-
-    uint8_t decrypted[16];
-    aes256.decryptBlock(decrypted, &msg.buf[0]);
-    LoRaPayload const* payload = reinterpret_cast<LoRaPayload const*>(decrypted);
-    if (payload->signature[0] == 'R' && payload->signature[1] == 'P' &&
-        payload->signature[2] == 'O')
-    {
-      if (payload->cmd == GetNonce)
-      {
-        LoRaPayload response(LORA_GW_ID);
-        uint8_t encrypted[sizeof(response)];
-        response.cmd = PutNonce;
-        response.nonce = esp_random();
-        // TODO: store nonce for given payload->nodeID
-        aes256.encryptBlock(encrypted, reinterpret_cast<uint8_t const*>(&response));
-        Heltec.send(encrypted, sizeof(encrypted));
-      }
-      else if (payload->cmd == SensorData)
-      {
-
-        String mqttPayload("Node ");
-        // TODO: payload->sensordata.nonce
-        mqttPayload += payload->nodeID;
-        mqttPayload += ": ";
-        mqttPayload += payload->sensordata.value;
-        pubSubClient.publish(config.mqtt_topic, mqttPayload.c_str(), mqttPayload.length() + 1);
-        ::strncpy(reinterpret_cast<char*>(&lastMessage.buf[0]), mqttPayload.c_str(),
-                  mqttPayload.length() + 1 /* TODO: check */);
-        // TODO: invalidate nonce
-      }
-    }
-    else
+    Serial.print("Message with length != ");
+    Serial.print(LoRaPayload::size(), DEC);
+    Serial.println(" received.");
+    if (pubSubClient.connected())
     {
       pubSubClient.publish(config.mqtt_topic_other, &msg.buf[0], msg.len);
     }
+    return;
   }
-  else
+
+  uint8_t decrypted[16];
+  aes256.decryptBlock(decrypted, &msg.buf[0]);
+  LoRaPayload payload;
+  LoRaPayload::fromByteStream(decrypted, sizeof(decrypted), payload);
+  if (!payload.signatureOK())
   {
-    Serial.print("MQTT disconnected. Message dropped: ");
-    Serial.println(reinterpret_cast<char const*>(&msg.buf[0]));
+    if (pubSubClient.connected())
+    {
+      pubSubClient.publish(config.mqtt_topic_other, &msg.buf[0], msg.len);
+    }
+    Serial.println("Message with incorrect signature received.");
+    return;
+  }
+  if (payload.cmd == GetNonce)
+  {
+    LoRaPayload response(LORA_GW_ID);
+    response.cmd = PutNonce;
+    response.nonce = esp_random();
+
+    // TODO: store nonce for given payload->nodeID
+
+    uint8_t encrypted[LoRaPayload::size()];
+    uint8_t cleartext[LoRaPayload::size()];
+    LoRaPayload::toByteStream(cleartext, sizeof(cleartext), response);
+    aes256.encryptBlock(encrypted, cleartext);
+    delay(1000);
+    Serial.println("Sending nonce ...");
+    Heltec.send(encrypted, sizeof(encrypted));
+  }
+  else if (payload.cmd == SensorData)
+  {
+    Serial.println("Received sensor data.");
+    String mqttPayload("Node ");
+    // TODO: check whether payload->sensordata.nonce is valid
+    mqttPayload += payload.nodeID;
+    mqttPayload += ": ";
+    mqttPayload += payload.sensordata.value;
+    if (pubSubClient.connected())
+    {
+      pubSubClient.publish(config.mqtt_topic, mqttPayload.c_str(), mqttPayload.length() + 1);
+    }
+    ::strncpy(reinterpret_cast<char*>(&lastMessage.buf[0]), mqttPayload.c_str(),
+              mqttPayload.length() + 1 /* TODO: check */);
+    // TODO: invalidate nonce
   }
 }
 

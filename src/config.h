@@ -25,6 +25,11 @@ struct Config
         num_wifi_credentials{0}, wifi_credentials{}
   {
   }
+  bool signatureOK() const
+  {
+    return signature[0] == EEPROM_SIGNATURE[0] && signature[1] == EEPROM_SIGNATURE[1] &&
+           signature[2] == EEPROM_SIGNATURE[2] && signature[3] == EEPROM_SIGNATURE[3];
+  }
   uint8_t signature[4];
   bool enable_display;
   bool enable_lora;
