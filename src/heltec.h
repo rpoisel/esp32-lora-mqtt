@@ -5,6 +5,7 @@
 #include "datatypes.h"
 
 #include <Arduino.h>
+#include <RH_RF95.h>
 #include <SSD1306Wire.h>
 
 using ButtonState = uint8_t;
@@ -29,20 +30,18 @@ class Heltec_ESP32
   Heltec_ESP32();
   ~Heltec_ESP32();
 
-  void begin(bool DisplayEnable = true, bool LoRaEnable = true, bool SerialEnable = true,
-             long BAND = 868E6, ReceiveCb receiveCb = nullptr, ButtonCb buttonCb = nullptr,
-             DrawCb drawCb = nullptr);
+  void begin(ReceiveCb receiveCb = nullptr, ButtonCb buttonCb = nullptr, DrawCb drawCb = nullptr);
   void loop();
 
   void send(size_t cnt);
-  void send(uint8_t const* buf, size_t buflen);
-
-  /* wifi kit 32 and WiFi LoRa 32(V1) do not have vext */
-  void VextON();
-  void VextOFF();
+  void send(uint8_t const* buf, uint8_t buflen);
 
   private:
+  static constexpr float const LORA_FREQ = 868.0;
   static constexpr size_t const LORA_QUEUE_LEN = 4;
+  static constexpr uint8_t const PIN_RFM95_CS = 18;
+  static constexpr uint8_t const PIN_RFM95_INT = 26;
+  static constexpr uint8_t const PIN_RFM95_RST = 14;
 
   SSD1306Wire display;
   ReceiveCb onReceiveCb;
@@ -50,6 +49,7 @@ class Heltec_ESP32
   DrawCb onDrawCb;
   volatile bool flagButton;
   circular_buffer<LoRaMessage, 4> cBuffer;
+  RH_RF95 rf95;
 
   friend void globalOnButton();
 };

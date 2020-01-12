@@ -4,11 +4,10 @@
 
 #include "heltec.h"
 
-#include <LoRa.h>
-
 Heltec_ESP32::Heltec_ESP32()
     : display(0x3c, SDA_OLED, SCL_OLED, RST_OLED, GEOMETRY_128_64), onReceiveCb(nullptr),
-      onButtonCb(nullptr), onDrawCb(nullptr), flagButton(false), cBuffer()
+      onButtonCb(nullptr), onDrawCb(nullptr),
+      flagButton(false), cBuffer{}, rf95{PIN_RFM95_CS, PIN_RFM95_INT}
 {
 }
 
@@ -16,89 +15,65 @@ Heltec_ESP32::~Heltec_ESP32()
 {
 }
 
-void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable, long BAND,
-                         ReceiveCb receiveCb, ButtonCb buttonCb, DrawCb drawCb)
+void Heltec_ESP32::begin(ReceiveCb receiveCb, ButtonCb buttonCb, DrawCb drawCb)
 {
   onReceiveCb = receiveCb;
   onButtonCb = buttonCb;
   onDrawCb = drawCb;
 
+  pinMode(LED, OUTPUT);
+
   // UART
-  if (SerialEnable)
-  {
-    Serial.begin(115200);
-    Serial.flush();
-    delay(50);
-    Serial.print("Serial initial done\r\n");
-  }
+  Serial.begin(115200);
+  Serial.flush();
+  delay(50);
+  Serial.print("Serial initial done\r\n");
 
   // OLED
-  if (DisplayEnable)
-  {
-    display.init();
-    display.flipScreenVertically();
-    display.setFont(ArialMT_Plain_10);
-    display.drawString(0, 0, "OLED initial done!");
-    display.display();
+  display.init();
+  display.flipScreenVertically();
+  display.setFont(ArialMT_Plain_10);
+  display.drawString(0, 0, "OLED initial done!");
+  display.display();
 
-    if (SerialEnable)
-    {
-      Serial.print("you can see OLED printed OLED initial done!\r\n");
-    }
-  }
+  Serial.print("you can see OLED printed OLED initial done!\r\n");
 
   // LoRa INIT
-  if (LoRaEnable)
+  pinMode(PIN_RFM95_RST, OUTPUT);
+  digitalWrite(PIN_RFM95_RST, HIGH);
+
+  delay(100);
+  digitalWrite(PIN_RFM95_RST, LOW);
+  delay(10);
+  digitalWrite(PIN_RFM95_RST, HIGH);
+  delay(10);
+
+  while (!rf95.init())
   {
-    SPI.begin(SCK, MISO, MOSI, SS);
-    LoRa.setPins(SS, RST_LoRa, DIO0);
-    if (!LoRa.begin(BAND))
-    {
-      if (SerialEnable)
-      {
-        Serial.print("Starting LoRa failed!\r\n");
-      }
-      if (DisplayEnable)
-      {
-        display.clear();
-        display.drawString(0, 0, "Starting LoRa failed!");
-        display.display();
-        delay(300);
-      }
-      while (1)
-        ;
-    }
-    LoRa.setSpreadingFactor(7);
-    LoRa.setPreambleLength(8);
-    LoRa.setSignalBandwidth(125000);
-    LoRa.disableCrc();
-    LoRa.setCodingRate4(5);
-    if (SerialEnable)
-    {
-      Serial.print("LoRa Initial success!\r\n");
-    }
-    if (DisplayEnable)
-    {
-      display.clear();
-      display.drawString(0, 0, "LoRa Initial success!");
-      display.display();
-      delay(300);
-    }
+    display.clear();
+    display.drawString(0, 0, "LoRa Initial failure!");
+    display.display();
+    Serial.println("Starting LoRa failed!");
+    Serial.println("Uncomment '#define SERIAL_DEBUG' in RH_RF95.cpp for detailed debug info");
+    while (1)
+      ;
   }
-  pinMode(LED, OUTPUT);
-  LoRa.onReceive(
-      [](void* context, int pSize) {
-        LoRaMessage msg{0, -1, {'\0'}};
-        for (msg.len = 0; LoRa.available() && msg.len < LORA_BUF_LEN - 1 && msg.len < pSize;
-             msg.len++)
-        {
-          msg.buf[msg.len] = static_cast<byte>(LoRa.read());
-        }
-        msg.rssi = LoRa.packetRssi();
-        auto heltec = static_cast<Heltec_ESP32*>(context);
-        heltec->cBuffer.put(msg);
-      },
-      this);
+  display.clear();
+  display.drawString(0, 0, "LoRa Initial success!");
+  display.display();
+
+  if (!rf95.setFrequency(868.0))
+  {
+    Serial.println("Could not set frequency");
+    while (1)
+      ;
+  }
+  rf95.setTxPower(23, false);
+  rf95.setSpreadingFactor(7);
+  rf95.setPreambleLength(8);
+  rf95.setSignalBandwidth(125000);
+  rf95.setPayloadCRC(false);
+  rf95.setCodingRate4(5);
 
   attachInterrupt(BUTTON, globalOnButton, FALLING);
   display.clear();
@@ -107,7 +82,17 @@ void Heltec_ESP32::begin(bool DisplayEnable, bool LoRaEnable, bool SerialEnable,
 void Heltec_ESP32::loop()
 {
   display.clear();
-  LoRa.receive();
+  rf95.setModeRx();
+  if (rf95.waitAvailableTimeout(100))
+  {
+    LoRaMessage msg;
+    if (!rf95.recv(&msg.buf[0], &msg.len))
+    {
+      Serial.println("Recv failed ...");
+    }
+    msg.rssi = rf95.lastRssi();
+    cBuffer.put(msg);
+  }
   while (onReceiveCb && !cBuffer.empty())
   {
     onReceiveCb(cBuffer.get());
@@ -129,29 +114,22 @@ void Heltec_ESP32::loop()
 
 void Heltec_ESP32::send(size_t cnt)
 {
-  LoRa.beginPacket();
-  LoRa.print("hello ");
-  LoRa.print(cnt);
-  LoRa.endPacket();
+  String msg("Hello ");
+  msg += cnt;
+  send(reinterpret_cast<uint8_t const*>(msg.c_str()), static_cast<uint8_t>(msg.length() + 1));
 }
 
-void Heltec_ESP32::send(uint8_t const* buf, size_t buflen)
+void Heltec_ESP32::send(uint8_t const* buf, uint8_t buflen)
 {
-  LoRa.beginPacket();
-  LoRa.write(buf, buflen);
-  LoRa.endPacket();
-}
-
-void Heltec_ESP32::VextON()
-{
-  pinMode(Vext, OUTPUT);
-  digitalWrite(Vext, LOW);
-}
-
-void Heltec_ESP32::VextOFF() // Vext default OFF
-{
-  pinMode(Vext, OUTPUT);
-  digitalWrite(Vext, HIGH);
+  rf95.setModeTx();
+  Serial.print("Sending message of len = ");
+  Serial.print(buflen, DEC);
+  Serial.print(": '");
+  Serial.write(buf, buflen);
+  Serial.println("'");
+  rf95.send(buf, buflen);
+  delay(10);
+  rf95.waitPacketSent();
 }
 
 void globalOnButton()

@@ -6,7 +6,10 @@
 constexpr int const LORA_BUF_LEN = 255; // see LoRa.cpp
 struct LoRaMessage
 {
-  int len;
+  LoRaMessage() : len(sizeof(buf)), rssi{-1}, buf{}
+  {
+  }
+  uint8_t len;
   int rssi;
   byte buf[LORA_BUF_LEN];
 };

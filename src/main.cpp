@@ -30,7 +30,7 @@ static void displayInfo(SSD1306Wire* display);
 void setup()
 {
   EEPROM.begin(512);
-#if 1
+#if 0
   EEPROM.put(0, config);
   EEPROM.commit();
 #else
@@ -40,8 +40,7 @@ void setup()
     config = Config();
   }
 #endif
-  Heltec.begin(config.enable_display, config.enable_lora, config.enable_serial, config.lora_band,
-               &messageReceived, &buttonPressed, &displayInfo);
+  Heltec.begin(&messageReceived, &buttonPressed, &displayInfo);
   Serial.println("WiFi configuration: ");
   for (auto const& cred : config.wifi_credentials)
   {
@@ -103,7 +102,9 @@ static void messageReceived(LoRaMessage const& msg)
   {
     Serial.print("Message with length != ");
     Serial.print(LoRaPayload::size(), DEC);
-    Serial.println(" received.");
+    Serial.print(" received: '");
+    Serial.write(msg.buf, msg.len);
+    Serial.println("'");
     if (pubSubClient.connected())
     {
       pubSubClient.publish(config.mqtt_topic_other, &msg.buf[0], msg.len);
