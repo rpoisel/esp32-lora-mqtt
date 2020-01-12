@@ -9,8 +9,6 @@ namespace LoRaGateway
 {
 constexpr uint8_t EEPROM_SIGNATURE[4]{0x5c, 0xa1, 0xab, 0x1e};
 
-#pragma pack(push)
-#pragma pack(1)
 struct Config
 {
   Config()
@@ -22,7 +20,7 @@ struct Config
                                   0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f},
         mqtt_broker{"192.168.88.241"}, mqtt_port{1883}, mqtt_topic{"/LoRa/Node1/msg"},
         mqtt_topic_other{"/LoRa/Node1/other"}, mqtt_clientid{"ESP LoRa2MQTT GW"},
-        num_wifi_credentials{0}, wifi_credentials{}
+        wifi_credentials{{{""}, {""}}, {{""}, {""}}, {{""}, {""}}}
   {
   }
   bool signatureOK() const
@@ -41,14 +39,12 @@ struct Config
   char mqtt_topic[32];
   char mqtt_topic_other[32];
   char mqtt_clientid[32];
-  size_t num_wifi_credentials;
   struct
   {
     char ssid[32];
     char password[32];
   } wifi_credentials[3];
 }; // namespace LoRaGateway
-#pragma pack(pop)
 } // namespace LoRaGateway
 
 #endif /* CONFIG_H_ */

@@ -30,7 +30,7 @@ static void displayInfo(SSD1306Wire* display);
 void setup()
 {
   EEPROM.begin(512);
-#if 0
+#if 1
   EEPROM.put(0, config);
   EEPROM.commit();
 #else
@@ -42,9 +42,18 @@ void setup()
 #endif
   Heltec.begin(config.enable_display, config.enable_lora, config.enable_serial, config.lora_band,
                &messageReceived, &buttonPressed, &displayInfo);
-  for (size_t cnt = 0; cnt < config.num_wifi_credentials; cnt++)
+  Serial.println("WiFi configuration: ");
+  for (auto const& cred : config.wifi_credentials)
   {
-    wiFiMulti.addAP(config.wifi_credentials[cnt].ssid, config.wifi_credentials[cnt].password);
+    if (cred.ssid[0] == '\0')
+    {
+      break;
+    }
+    Serial.print("  Adding AP ssid=");
+    Serial.print(cred.ssid);
+    Serial.print(", pass=");
+    Serial.println(cred.password);
+    wiFiMulti.addAP(cred.ssid, cred.password);
   }
   pubSubClient.setServer(config.mqtt_broker, config.mqtt_port);
   aes256.setKey(&config.aes_key[0], sizeof(config.aes_key));
@@ -102,10 +111,11 @@ static void messageReceived(LoRaMessage const& msg)
     return;
   }
 
-  uint8_t decrypted[16];
-  aes256.decryptBlock(decrypted, &msg.buf[0]);
+  uint8_t cleartext[LoRaPayload::size()];
   LoRaPayload payload;
-  LoRaPayload::fromByteStream(decrypted, sizeof(decrypted), payload);
+
+  aes256.decryptBlock(cleartext, &msg.buf[0]);
+  LoRaPayload::fromByteStream(cleartext, sizeof(cleartext), payload);
   if (!payload.signatureOK())
   {
     if (pubSubClient.connected())
@@ -128,7 +138,8 @@ static void messageReceived(LoRaMessage const& msg)
     LoRaPayload::toByteStream(cleartext, sizeof(cleartext), response);
     aes256.encryptBlock(encrypted, cleartext);
     delay(1000);
-    Serial.println("Sending nonce ...");
+    Serial.print("Sending nonce: ");
+    Serial.println(response.nonce, HEX);
     Heltec.send(encrypted, sizeof(encrypted));
   }
   else if (payload.cmd == SensorData)
